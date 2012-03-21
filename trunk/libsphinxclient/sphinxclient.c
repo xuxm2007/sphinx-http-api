@@ -2125,7 +2125,9 @@ void sphinx_init_excerpt_options ( sphinx_excerpt_options * opts )
 }
 
 
-char ** sphinx_build_excerpts ( sphinx_client * client, int num_docs, const char ** docs, const char * index, const char * words, sphinx_excerpt_options * opts )
+char ** sphinx_build_excerpts ( sphinx_client * client, int num_docs,
+			const char ** docs, const char * index, const char * words,
+			sphinx_excerpt_options * opts )
 {
 	sphinx_excerpt_options opt;
 	int i, req_len, flags;

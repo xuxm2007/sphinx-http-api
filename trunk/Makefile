@@ -4,6 +4,8 @@ XX := g++
 
 #C_FLAGS += -Wall -O2
 C_FLAGS += -g -O0 -Wall
+CC_FLAGS += -g -O0 -Wall -Wno-write-strings -Wextra -Winline -Wunused
+CC_FLAGS += -Wfloat-equal -Wshadow -Werror -Wmissing-include-dirs -Wformat=2
 LIB_FLAGS := -lpthread
 #LIB = -L""
 LIB :=
@@ -45,7 +47,7 @@ $(TARGET):$(OBJ)
 
 .cc.o:
 	@echo $(@D)/$(<F) " -> " $(@D)/$(@F)
-	$(CXX) -c $(@D)/$(<F) -o $(@D)/$(@F) $(C_FLAGS) $(LIB_FLAGS) $(INC)
+	$(CXX) -c $(@D)/$(<F) -o $(@D)/$(@F) $(CC_FLAGS) $(LIB_FLAGS) $(INC)
 
 format:
 	@echo "format source code style"

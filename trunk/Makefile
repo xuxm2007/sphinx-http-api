@@ -35,7 +35,7 @@ INFO:
 
 $(TARGET):$(OBJ)
 	ctags -R
-	$(CXX) -o $@ $^ $(C_FLAGS) $(LIB_FLAGS) $(LIB)
+	$(CXX) --coverage -o $@ $^ $(C_FLAGS) $(LIB_FLAGS) $(LIB)
 
 .c.o:
 	@echo $(@D)/$(<F) " -> " $(@D)/$(@F)
@@ -47,7 +47,7 @@ $(TARGET):$(OBJ)
 
 .cc.o:
 	@echo $(@D)/$(<F) " -> " $(@D)/$(@F)
-	$(CXX) -c $(@D)/$(<F) -o $(@D)/$(@F) $(CC_FLAGS) $(LIB_FLAGS) $(INC)
+	$(CXX) -c --coverage $(@D)/$(<F) -o $(@D)/$(@F) $(CC_FLAGS) $(LIB_FLAGS) $(INC)
 
 format:
 	@echo "format source code style"

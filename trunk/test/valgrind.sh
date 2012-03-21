@@ -19,6 +19,5 @@ sleep 1
 kill $cpid
 sleep 1
 
-
 #--tool=helgrind 
 #--tool=memcheck

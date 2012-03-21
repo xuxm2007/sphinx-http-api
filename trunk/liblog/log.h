@@ -20,19 +20,16 @@
 
 class CLog {
   public:
-    CLog(const char *log_base_path,
-          int max_log_size = 64*1024*1024,
-          int max_log_num = 10,
-          int log_level = CLog::LOG_DEBUG,
-          bool mul_thread = false);
+    CLog(const char *log_base_path, int max_log_size = 64*1024*1024,
+          int max_log_num = 10, int log_level = CLog::LOG_DEBUG);
     virtual ~CLog() { close(); }
 
   public:
     enum CLogLevel {
-      LOG_NO = 0,
+      LOG_NO    = 0,
       LOG_ERROR = 1,
-      LOG_WARN = 2,
-      LOG_INFO = 3,
+      LOG_WARN  = 2,
+      LOG_INFO  = 3,
       LOG_DEBUG = 4
     };
 

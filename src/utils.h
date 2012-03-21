@@ -21,7 +21,7 @@ inline std::string & trim(std::string & source) {
   return trim_left(trim_right(source));
 }
 
-char * trim(char *String) {
+static char * trim(char *String) {
   char *Tail, *Head;
   for (Tail = String + strlen(String) - 1; Tail >= String; Tail--) {
     if (!ISSPACE(*Tail)) {

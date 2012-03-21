@@ -21,6 +21,7 @@ inline std::string & trim(std::string & source) {
   return trim_left(trim_right(source));
 }
 
+/* 
 static char * trim(char *String) {
   char *Tail, *Head;
   for (Tail = String + strlen(String) - 1; Tail >= String; Tail--) {
@@ -39,5 +40,7 @@ static char * trim(char *String) {
   }
   return String;
 }
+*/
+
 #endif  // SRC_UTILS_H_
 

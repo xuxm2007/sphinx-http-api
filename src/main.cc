@@ -701,8 +701,7 @@ static void set_http_response_buf(struct buffer *buf, int status,
  * 检查请求是否有效
  @return 有效返回0.
  */
-int check_request_valid(struct buffer *buf,
-      const struct http_request *request) {
+int check_request_valid(const struct http_request *request) {
   if (request->type == HTTP_UNKNOWN) {
     return -1;
   }
@@ -776,7 +775,7 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
       }
 
       {
-        int ret = check_request_valid(buf, request);
+        int ret = check_request_valid(request);
         if (ret == -1) {
           const char * info = "ERROR: Not Implemented Method";
           WARN_LOG("%s", info);
@@ -971,7 +970,7 @@ static int check_config_parameter() {
   return 0;
 }
 
-void ExecSafeExit(int aiSignal) {
+void ExecSafeExit(int) {
   // struct timeval tv;
   // tv.tv_sec = 1;
   // tv.tv_usec = 0;
@@ -1043,13 +1042,13 @@ void send_bad_req(int fd) {
 class SimpleWorkTask: public CTask {
   public:
     explicit SimpleWorkTask(struct ClientInfo * socket_client) {
-      this->socket_client = socket_client;
+      this->socket_client_ = socket_client;
     }
 
     int Run() {
       TRACE_F;
       DEBUG_LOG("%s", "SimpleWorkTask Run: begin...");
-      struct SockConnection *conn = &socket_client->conn;
+      struct SockConnection *conn = &socket_client_->conn;
       DEBUG_LOG("sock fd=%d", conn->fd);
       // 还不能处理成非阻塞的，掌握的知识还不够
       // setSockNonBlock(conn->fd);
@@ -1064,7 +1063,7 @@ class SimpleWorkTask: public CTask {
         int ret = buffer_read(conn->inbuf, conn->fd, 4096);
         DEBUG_LOG("buffer_read:%d", ret);
         if (ret > 0) {
-          http_handler(this->socket_client, &keep_alive);
+          http_handler(this->socket_client_, &keep_alive);
         }
 
         buffer_free(conn->inbuf);
@@ -1081,13 +1080,13 @@ class SimpleWorkTask: public CTask {
         }
       }
       disconnect_conn(conn);
-      free(socket_client);
+      free(socket_client_);
       DEBUG_LOG("%s", "SimpleWorkTask Run: end");
       return 0;
     }
 
   private:
-    struct ClientInfo * socket_client;
+    struct ClientInfo * socket_client_;
 };
 
 inline static void fast_close(int fd) {
@@ -1319,6 +1318,14 @@ int daemonize(int chrt, int noclose) {
 
 
 int main(int argc, char **argv) {
+  if (argc > 0) {
+    printf("input params:");
+    for (int i=0; i< argc; ++i) {
+        char *s = argv[0];
+        printf("\t%s\n", s);
+    }
+    printf("\n");
+  }
   gp_parameter = new GlobalParameter;
   // 配置文件解析
   if (!load_config_file()) {

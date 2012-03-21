@@ -32,9 +32,9 @@
 #include "../libjson/json.h"
 #include "../liblog/log.h"
 #include "./utils.h"
-#include "./Config.h"
-#include "./SphinxQueryData.h"
-#include "./SearchResult.h"
+#include "./config.h"
+#include "./sphinx_query_data.h"
+#include "./search_result.h"
 #include "./buffer.h"
 #include "./http.h"
 

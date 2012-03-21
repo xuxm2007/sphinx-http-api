@@ -1,10 +1,10 @@
 /**
- * Config.cpp
+ * $Id$ 
  *
- *  Copyright 2012 zhaigy hontlong@gmail.com
+ * Copyright 2012 zhaigy hontlong@gmail.com
  */
 
-#include "./Config.h"
+#include "./config.h"
 
 using namespace std;
 

@@ -60,4 +60,9 @@ check:
 
 clean:
 	rm -f $(TARGET) $(OBJ) $(OBJ)
+	@for d in $(SUBDIR2); do \
+		rm -f ./$$d/*.gcno; \
+		rm -f ./$$d/*.gcda; \
+		rm -f ./$$d/*.o; \
+	done
 

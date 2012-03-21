@@ -14,7 +14,8 @@ ZKH_Y="%5D" #]
 
 #return `echo -n "$1" | od -An -tx1 | tr ' ' %`
 
-CURL="curl -v -g"
+#CURL="curl -v -g -s"
+CURL="curl -s -o /dev/null"
 
 info()
 {

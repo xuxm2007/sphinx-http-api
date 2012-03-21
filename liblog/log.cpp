@@ -42,11 +42,8 @@
     return res; \
   } while (0)
 
-CLog::CLog(const char *log_path_name,
-      int max_log_size,
-      int max_log_num,
-      int log_level,
-      bool mul_thread) {
+CLog::CLog(const char *log_path_name, int max_log_size, int max_log_num,
+      int log_level) {
   _max_log_size = max_log_size;
   _log_size = 0;
   _max_log_num = max_log_num;

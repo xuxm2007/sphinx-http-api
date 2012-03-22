@@ -1,21 +1,6 @@
 #!/bin/sh
-HOST="http://localhost:2046"
-INDEX="index=mysql"
-SEARCH="$HOST/search?$INDEX"
-Q="&q=%E5%B0%91%E7%94%B7"
 
-MH="%3A" #:
-DH="%2C" #,
-TH="%21" #!
-KH_Z="%28" #(
-KH_Y="%29" #)
-ZKH_Z="%5B" #[
-ZKH_Y="%5D" #]
-
-#return `echo -n "$1" | od -An -tx1 | tr ' ' %`
-
-#CURL="curl -v -g -s"
-CURL="curl -s -o /dev/null"
+. ./head.sh
 
 info()
 {
@@ -28,22 +13,7 @@ info()
   $CURL "$HOST/statistic"
   $CURL "$HOST/debug"
 }
-#info;
-
-clean()
-{
-  M=""; R=""; S=""; ST=""; RS=""; F=""; ID=""; FW=""; G=""; GD=""; SE=""; QT="";
-  M="&matchmode=SPH_MATCH_EXTENDED2"
-  R="&rankingmode=SPH_RANK_PROXIMITY_BM25"
-  S="&sortmode=SPH_SORT_RELEVANCE"
-}
-
-search()
-{
-    url="${SEARCH}${Q}${M}${R}${S}${ST}${RS}${F}${ID}${FW}${G}${GD}${SE}${QT}";
-    echo $url;
-    $CURL $url;
-}
+info;
 
 #search -- default
 clean
@@ -64,6 +34,8 @@ search_1()
     search
   done
 }
+search_1;
+
 #search -- rankingmode
 RKS={SPH_RANK_PROXIMITY_BM25 SPH_RANK_BM25 SPH_RANK_NONE SPH_RANK_WORDCOUNT SPH_RANK_PROXIMITY SPH_RANK_FIELDMASK}
 clean
@@ -77,7 +49,7 @@ done
 SMS={SPH_SORT_RELEVANCE SPH_SORT_ATTR_DESC${MH}group_id
 SPH_SORT_ATTR_ASC${MH}group_id
 SPH_SORT_TIME_SEGMENTS${MH}date SPH_SORT_EXTENDED
-"SPH_SORT_EXPR:(attrName+attrName2)/2 desc"}
+"SPH_SORT_EXPR${MH}${KH_L}attrName+attrName2${KH_R}${FXG}2+desc"}
 clean
 for var in $SMS; do
   S="&sortmode=$var"
@@ -116,6 +88,12 @@ F="&filter=${TH}group_id${MH}${ZKH_Z}1+TO+10${ZKH_Y}"
 search
 F="&filter=group_id${MH}${KH_Z}1+TO+10${KH_Y}"
 search
+F="&filter=group_id${MH}${ZKH_Z}1+TO+10${KH_Y}"
+search
+F="&filter=${TH}group_id${MH}${ZKH_Z}1+TO+10${KH_Y}"
+search
+F="&filter=group_id${MH}${ZKH_Z}1.1+TO+10${KH_Y}"
+search
 
 #search -- fieldweights
 clean
@@ -132,9 +110,4 @@ search
 clean
 QT="&maxquerytime=1000"
 search
-
-#%E5%85%AC%E5%BC%80 公开
-#%E6%A0%A1%E9%95%BF 校长
-#%E9%93%B6%E5%85%83 银元
-#%E5%B0%91%E7%94%B7 少男
 

@@ -120,6 +120,10 @@ CLog * gp_log = NULL;
 #define LOG(level, printout, fmt...) \
   do { \
     if (gp_log) gp_log->level(fmt); \
+    if (strcmp(#level, "error") == 0) { \
+      gp_log->level("file:%s, func:%s, line:%d", \
+            __FILE__, __FUNCTION__, __LINE__); \
+    } \
     if (gp_parameter != NULL && gp_parameter->is_daemon) { \
       fprintf(printout, fmt); \
       fprintf(printout, "\n"); \
@@ -454,7 +458,7 @@ void search(const SphinxQueryData & sqd, SearchResult * sr) {
     set_ok = true;
   } while (0);
   if (!set_ok) {
-    throw sphinx_error(client);
+    throw string(sphinx_error(client));
   }
   sphinx_result *res = sphinx_query(client, sqd.q.c_str(),
         sqd.index.c_str(), NULL);
@@ -462,7 +466,7 @@ void search(const SphinxQueryData & sqd, SearchResult * sr) {
     WARN_LOG("query error:%s", sphinx_error(client));
     release_thread_sphinx_client();
     // 可能存在错误的连接
-    throw sphinx_error(client);
+    throw string(sphinx_error(client));
   }
   sr->set_result(res);
 }
@@ -718,7 +722,7 @@ int check_request_valid(const struct http_request *request) {
 
 // 返回http请求中路径或者NULL, 调用者负责删除数据
 static char * uri_get_path(const char * uri) {
-  if ( uri ==NULL || strlen(uri) == 0) return NULL;
+  if (uri ==NULL || strlen(uri) == 0) return NULL;
   const char * s = uri;
   const char * p = strstr(s, "://");
   if (p != NULL) s = p + 3;
@@ -748,6 +752,7 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
   TRACE_F;
   struct http_request *request = NULL;
   char * path = NULL;
+  buffer * body_data = NULL;
   try {
     struct SockConnection *conn = &socket_client->conn;
     struct buffer *buf = conn->outbuf;
@@ -792,9 +797,9 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
       }
 
       path = uri_get_path(request->uri);
-      DEBUG_LOG("path:%s", path);  // path can is NULL
+      DEBUG_LOG("path:%s, uri:%s", path, request->uri);  // path can is NULL
 
-      buffer * body_data = buffer_new();
+      body_data = buffer_new();
       if (body_data == NULL) {
         const char * info = "ERROR: malloc fail";
         set_http_response(buf, HTTP_BADREQUEST, CODE_STR(HTTP_BADREQUEST),
@@ -886,16 +891,15 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
         }
       }
       if (is_ok) {
-        INFO_LOG("[%s] OK", path);
+        INFO_LOG("[%s] OK, [%s]", path, request->uri);
         set_http_response_buf(buf, HTTP_OK, CODE_STR(HTTP_OK),
               *keep_alive, body_data, is_html);
       } else {
-        WARN_LOG("[%s] Fail", path);
+        WARN_LOG("[%s] Fail, [%s]", path, request->uri);
         *keep_alive = false;
         set_http_response_buf(buf, HTTP_BADREQUEST, CODE_STR(HTTP_BADREQUEST),
               *keep_alive, body_data);
       }
-      buffer_free(body_data);
     }
  BUF_OUT:
     // 输出数据
@@ -903,6 +907,7 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
       DEBUG_LOG("out put response ...");
       buffer_write(buf, conn->fd);
     }
+    if (body_data) buffer_free(body_data);
     if (path) free(path);
     if (request) http_request_free(request);
     // FIXME:需要更稳妥的处理异常
@@ -913,6 +918,7 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
     ERROR_LOG("未知错误");
   }
   gp_statistic->query_error_count++;
+  if (body_data) buffer_free(body_data);
   if (path) free(path);
   if (request) http_request_free(request);
 }
@@ -1238,11 +1244,11 @@ void service() {
             accept_conn_cb(connfd, &cliaddr);
           } else {
             if (errno == EAGAIN) {
-              ERROR_LOG("accept:%d,errno:%d = EAGAIN", connfd, errno);
+              // ERROR_LOG("accept:%d,errno:%d = EAGAIN", connfd, errno);
               // 非阻塞 无数据可读
               break;
             } else if (errno == EINTR) {
-              ERROR_LOG("accept:%d,errno:%d = EINTR", connfd, errno);
+              // ERROR_LOG("accept:%d,errno:%d = EINTR", connfd, errno);
               // 调用被信号中断，可简单忽略它
               // retry
             } else {
@@ -1372,6 +1378,7 @@ int main(int argc, char **argv) {
     gp_thread_pool->set_thread_exit_cb(release_sphinx_client);
 
     service();
+    // gp_thread_pool->StopAll();
 
     delet_pid_file();
     close_all_sphinx_client();

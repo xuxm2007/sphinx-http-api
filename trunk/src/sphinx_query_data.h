@@ -77,6 +77,7 @@ class SphinxQueryData {
       };
     };
 
+    // FIXME: 增强输入参数的格式检查
     explicit SphinxQueryData(QueryData qd) {
       // 初始默认值
       start = qd.start;

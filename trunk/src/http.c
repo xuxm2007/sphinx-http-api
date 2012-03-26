@@ -16,7 +16,7 @@
 
 #define NEW(type) (type*)malloc(sizeof(type))
 
-void add_time_header( struct buffer *buf ) {
+void add_time_header(struct buffer *buf) {
   char date[50];
   struct tm cur;
   struct tm *cur_p;
@@ -30,27 +30,30 @@ void add_time_header( struct buffer *buf ) {
 /**
  * parse http request initial line.
  */
-static int _parse_init_line( struct http_request *request, char *line ) {
-  char *token = strtok( line, " " );
-  if( strcmp( token, "GET" ) == 0 ) {
+static int parse_init_line(struct http_request *request, char *line) {
+  char *ptr = NULL;
+  char *token = strtok_r(line, " ", &ptr);
+  if (token == NULL) {
+    request->type = HTTP_UNKNOWN;
+  } else if (strcmp(token, "GET") == 0) {
     request->type = HTTP_GET;
-  } else if( strcmp( token, "HEAD" ) == 0 ) {
+  } else if (strcmp(token, "HEAD") == 0) {
     request->type = HTTP_HEAD;
   } else {
     request->type = HTTP_UNKNOWN;
   }
 
   /* uri */
-  token = strtok( 0, " " );
-  request->uri = (char*) malloc( strlen( token ) + 1 );
-  strcpy( request->uri, token );
+  token = strtok_r(NULL, " ", &ptr);
+  request->uri = (char*)malloc(strlen(token) + 1);
+  strcpy(request->uri, token);
 
   /* http protocol version */
-  token = strtok( 0, " " );
-  if( strcmp( token, "HTTP/1.0" ) == 0 ) {
+  token = strtok_r(NULL, " ", &ptr);
+  if (strcmp( token, "HTTP/1.0") == 0) {
     request->ver.major = 1;
     request->ver.minor = 0;
-  } else if( strcmp( token, "HTTP/1.1" ) == 0 ) {
+  } else if (strcmp( token, "HTTP/1.1") == 0) {
     request->ver.major = 1;
     request->ver.minor = 1;
   } else {
@@ -287,39 +290,42 @@ const char *http_get_header_value( struct http_header_head *header_queue,
 
 // NULL=失败
 struct http_request *http_request_parse( struct buffer *buf ) {
-  struct http_request *request = NEW( struct http_request );
-  if( request == NULL ) return NULL;
-
+  struct http_request *request = NEW(struct http_request);
+  if (request == NULL) return NULL;
+  memset(request, 0, sizeof(request));
   {
     // 请求行处理
-    char *line = buffer_readline( buf );
+    char *line = buffer_readline(buf);
     if (line == NULL) return NULL;
-    int ret = _parse_init_line( request, line );
-    free( line );
-    if( ret != 0 ) {
-      free( request );
+    int ret = parse_init_line(request, line);
+    free(line);
+    line = NULL;
+    if(ret != 0) {
+      // free(request);
+      http_request_free(request);
       return NULL;
     }
   }
 
   request->headers = http_header_new();
   // parse headers
-  char *line = buffer_readline( buf ) ;
+  char *line = buffer_readline(buf) ;
   int ret = 0;
   // 头和Body之间有一个空行
-  while( line != NULL && *line != '\0' ) {
-    ret = http_add_header_line( request->headers, line );
-    free( line );
-    if( ret != 0 ) break;
-    line = buffer_readline( buf );
+  while(line != NULL && *line != '\0') {
+    ret = http_add_header_line(request->headers, line);
+    if(ret != 0) break;
+    free(line);
+    line = buffer_readline(buf);
   }
+  if (line) free(line);
   // 忽略body数据，现在还不支持
   return request;
 }
 
-void http_request_free( struct http_request *request ) {
-  free( request->uri );
-  http_header_free( request->headers );
+void http_request_free(struct http_request *request) {
+  if (request->uri) free(request->uri);
+  if (request->headers) http_header_free(request->headers);
   free( request );
 }
 

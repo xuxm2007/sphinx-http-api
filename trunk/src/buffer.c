@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <unistd.h>
-#include "buffer.h"
+#include "./buffer.h"
 
 struct buffer * buffer_new(void) {
   struct buffer *buffer = calloc(1, sizeof(struct buffer));
@@ -17,8 +17,7 @@ struct buffer * buffer_new(void) {
 }
 
 void buffer_free(struct buffer *buffer) {
-  if (buffer->orig_buffer != NULL)
-  free(buffer->orig_buffer);
+  if (buffer->orig_buffer != NULL) free(buffer->orig_buffer);
   free(buffer);
 }
 
@@ -104,10 +103,11 @@ int buffer_remove(struct buffer *buf, void *data, size_t datlen) {
   return (nread);
 }
 
+// 返回的行申请了内存, 调用者负责释放
 char * buffer_readline(struct buffer *buffer) {
   u_char *data = buffer->buffer;
   size_t len = buffer->len;
-  char *line;
+  char *line = NULL;
   unsigned int i;
 
   for (i = 0; i < len; i++) {
@@ -118,8 +118,7 @@ char * buffer_readline(struct buffer *buffer) {
   if (i == len) return (NULL);
 
   if ((line = malloc(i + 1)) == NULL) {
-    // buffer_drain(buffer, i);
-    return (NULL);
+    return NULL;
   }
 
   memcpy(line, data, i);
@@ -190,6 +189,7 @@ int buffer_add(struct buffer *buf, const void *data, size_t datlen) {
   return (0);
 }
 
+// 移除数据
 void buffer_drain(struct buffer *buf, size_t len) {
   if (len >= buf->len) {
     buf->len = 0;

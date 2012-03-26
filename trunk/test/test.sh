@@ -7,6 +7,7 @@ info()
   #info
   $CURL "$HOST"
   $CURL "$HOST/"
+  $CURL "$HOST/info"
   #status
   $CURL "$HOST/status"
   #statistic
@@ -25,7 +26,8 @@ search
 #search -- matchmode
 search_1()
 {
-  MMS={SPH_MATCH_ALL SPH_MATCH_ANY SPH_MATCH_PHRASE SPH_MATCH_FULLSCAN SPH_MATCH_EXTENDED2}
+  MMS=("SPH_MATCH_ALL" "SPH_MATCH_ANY" "SPH_MATCH_PHRASE" "SPH_MATCH_FULLSCAN"
+    "SPH_MATCH_EXTENDED2")
   clean
   M=""
   search
@@ -37,7 +39,8 @@ search_1()
 search_1;
 
 #search -- rankingmode
-RKS={SPH_RANK_PROXIMITY_BM25 SPH_RANK_BM25 SPH_RANK_NONE SPH_RANK_WORDCOUNT SPH_RANK_PROXIMITY SPH_RANK_FIELDMASK}
+RKS=(SPH_RANK_PROXIMITY_BM25 SPH_RANK_BM25 SPH_RANK_NONE SPH_RANK_WORDCOUNT
+SPH_RANK_PROXIMITY SPH_RANK_FIELDMASK)
 clean
 search
 for var in $RMS; do
@@ -46,10 +49,10 @@ for var in $RMS; do
 done
 
 #search -- sortmode
-SMS={SPH_SORT_RELEVANCE SPH_SORT_ATTR_DESC${MH}group_id
+SMS=(SPH_SORT_RELEVANCE SPH_SORT_ATTR_DESC${MH}group_id
 SPH_SORT_ATTR_ASC${MH}group_id
 SPH_SORT_TIME_SEGMENTS${MH}date SPH_SORT_EXTENDED
-"SPH_SORT_EXPR${MH}${KH_L}attrName+attrName2${KH_R}${FXG}2+desc"}
+"SPH_SORT_EXPR${MH}${KH_L}attrName+attrName2${KH_R}${FXG}2+desc")
 clean
 for var in $SMS; do
   S="&sortmode=$var"
@@ -116,5 +119,5 @@ search
 
 #search -- select 
 clean
-SE="&select=id${DH}title"
+SE="&select=id${DH}group_id"
 search

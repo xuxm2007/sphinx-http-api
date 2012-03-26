@@ -1,18 +1,17 @@
-#!/bin/sh
+#!/bin/bash
 DIR=$(cd $(dirname $0);pwd)
 WORK_HOME=$DIR/..
 cd $WORK_HOME
-valgrind --leak-check=full --show-reachable=yes --track-fds=yes\
-  --trace-children=yes\
-  --log-file-exactly=./test/memcheck.log\
-  ./sphinx_http_api &
+valgrind --leak-check=full --show-reachable=yes --track-fds=yes --trace-children=yes --log-file=./test/memcheck.log ./sphinx_http_api &
 cpid=$!
 
-sleep 8;
+sleep 3;
 cd $DIR
 
-for((i=0;i<10;++i)); do
+for ((i=0; i<2; ++i)) ; do
   sh ./test.sh
+  sleep 1
+  sh ./test_fail.sh
 done
 
 sleep 1

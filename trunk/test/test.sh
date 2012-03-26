@@ -68,6 +68,9 @@ G="&groupby=SPH_GROUPBY_MONTH${MH}date_added${MH}@group+desc"
 search
 G="&groupby=SPH_GROUPBY_YEAR${MH}date_added${MH}@group+desc"
 search
+G="&groupby=SPH_GROUPBY_YEAR${MH}date_added${MH}@group+desc"
+GD="&groupdistinct=group_id"
+search
 
 #groupdistinct
 
@@ -108,6 +111,10 @@ search
 
 #search -- maxquerytime
 clean
-QT="&maxquerytime=1000"
+QT="&maxquerytime=1000&connecttimeout=1000"
 search
 
+#search -- select 
+clean
+SE="&select=id${DH}title"
+search

@@ -35,7 +35,7 @@ INFO:
 
 $(TARGET):$(OBJ)
 	ctags -R
-	$(CXX) --coverage -o $@ $^ $(C_FLAGS) $(LIB_FLAGS) $(LIB)
+	$(CXX) --coverage -o $@ $^ $(C_FLAGS) $(LIB_FLAGS) $(LIB) --static
 
 .c.o:
 	@echo $(@D)/$(<F) " -> " $(@D)/$(@F)

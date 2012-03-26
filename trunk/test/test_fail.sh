@@ -2,6 +2,17 @@
 
 . ./head.sh
 
+too_long()
+{
+  clean
+  QT="&maxquerytime=10000000000000000000000000000"
+  for((i=0;i<100;++i)); do
+    QT="${QT}00000000000000000000000000000000000000000000000000000000000000000000"
+  done
+  search
+}
+too_long;
+exit 0;
 info()
 {
   #info
@@ -81,6 +92,7 @@ search
 F="&filter=group_id${MH}${ZKH_Z}1.1.1+TO+-010${KH_Y}"
 search
 
+
 #search -- fieldweights
 clean
 FW="&fieldweights=title${MH}${MH}2${DH}content${MH}1${MH}2"
@@ -111,6 +123,7 @@ ST="&start=20"
 search
 RS="&rows=-1"
 search
+
 
 #search -- maxquerytime
 clean

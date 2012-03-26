@@ -120,21 +120,25 @@ CLog * gp_log = NULL;
 #define LOG(level, printout, fmt...) \
   do { \
     if (gp_log) gp_log->level(fmt); \
-    if (strcmp(#level, "error") == 0) { \
+    if (strcmp(#level, "error") == 0 || strcmp(#level, "warn") == 0) { \
       gp_log->level("file:%s, func:%s, line:%d", \
             __FILE__, __FUNCTION__, __LINE__); \
     } \
     if (gp_parameter != NULL && gp_parameter->is_daemon) { \
       fprintf(printout, fmt); \
       fprintf(printout, "\n"); \
+      if (strcmp(#level, "error") == 0 || strcmp(#level, "warn") == 0) { \
+        fprintf(printout, "file:%s, func:%s, line:%d", \
+             __FILE__, __FUNCTION__, __LINE__); \
+      } \
     } \
   }while (0)
 #define ERROR_LOG(fmt...) LOG(error, stderr, fmt)
 #define WARN_LOG(fmt...) LOG(warn, stderr, fmt)
 #define INFO_LOG(fmt...) LOG(info, stdout, fmt)
 #define DEBUG_LOG(fmt...) LOG(debug, stdout, fmt)
-#define TRACE_F DEBUG_LOG("function:%s, line:%d", __FUNCTION__, __LINE__)
-// #define TRACE_F
+// #define TRACE_F DEBUG_LOG("function:%s, line:%d", __FUNCTION__, __LINE__)
+#define TRACE_F
 /**************************************************/
 
 /**
@@ -830,7 +834,7 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
           const char * e = strrchr(s, '#');
           if (e == NULL) e = s + strlen(s);
           int len = e - s;
-          if (len > 255) {
+          if (len > static_cast<int>(sizeof(query_str) - 1)) {
             const char * info = "ERROR: parse uri fail";
             WARN_LOG("%s", info);
             set_http_response(buf, HTTP_BADREQUEST, CODE_STR(HTTP_BADREQUEST),

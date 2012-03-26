@@ -296,12 +296,14 @@ struct http_request *http_request_parse( struct buffer *buf ) {
   {
     // 请求行处理
     char *line = buffer_readline(buf);
-    if (line == NULL) return NULL;
+    if (line == NULL) {
+      http_request_free(request);
+      return NULL; 
+    }
     int ret = parse_init_line(request, line);
     free(line);
     line = NULL;
     if(ret != 0) {
-      // free(request);
       http_request_free(request);
       return NULL;
     }

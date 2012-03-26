@@ -9,13 +9,12 @@ valgrind --leak-check=full --show-reachable=yes --track-fds=yes \
   ./sphinx_http_api &
 cpid=$!
 
-sleep 3 
+sleep 2 
 cd $DIR
 
 for ((i=0; i<1; ++i)) ; do
-  sh ./test.sh
-  sleep 1
-# sh ./test_fail.sh
+  #sh ./test.sh
+  sh ./test_fail.sh
 done
 
 sleep 1

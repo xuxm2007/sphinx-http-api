@@ -1,6 +1,10 @@
 #!/bin/sh
 
 . ./head.sh
+#search -- select 
+clean
+SE="&select=id${DH}group_id"
+search
 
 info()
 {

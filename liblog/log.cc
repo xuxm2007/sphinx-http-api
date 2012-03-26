@@ -21,11 +21,10 @@
     time_t tnow = time(NULL);\
     localtime_r(&tnow, &tm);\
     \
-    pthread_t tid = pthread_self();\
     int res = snprintf(_log_buf, sizeof(_log_buf), \
-          "%04d-%02d-%02d %02d:%02d:%02d [%lu] [%s]:", \
+          "%04d-%02d-%02d %02d:%02d:%02d [%s]:", \
           tm.tm_year + 1900, tm.tm_mon + 1, \
-          tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, tid, head);\
+          tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, head);\
     if (res < 0) return res;\
     int write_byte = res;\
     \

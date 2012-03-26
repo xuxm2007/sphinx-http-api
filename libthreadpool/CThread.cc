@@ -195,6 +195,8 @@ void* CThreadPool::ThreadFunc(void * p_thread_pool) {
       }
     }
   }
+  // 一定从此处退出
+  // pthread_detach(tid);
   return NULL;
 }
 
@@ -203,16 +205,26 @@ int CThreadPool::StopAll() {
   vector<pthread_t>::iterator iter = m_vecIdleThread.begin();
   while (iter != m_vecIdleThread.end()) {
     pthread_cancel(*iter);
+    iter++;
+  }
+  iter = m_vecIdleThread.begin();
+  while (iter != m_vecIdleThread.end()) {
     pthread_join(*iter, NULL);
     iter++;
   }
+  m_vecIdleThread.clear();
 
   iter = m_vecBusyThread.begin();
   while (iter != m_vecBusyThread.end()) {
     pthread_cancel(*iter);
+    iter++;
+  }
+  iter = m_vecBusyThread.begin();
+  while (iter != m_vecBusyThread.end()) {
     pthread_join(*iter, NULL);
     iter++;
   }
+  m_vecBusyThread.clear();
 
   pthread_mutex_destroy(&this->m_pthreadMutex);
   pthread_cond_destroy(&this->m_pthreadCond);

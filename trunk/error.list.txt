@@ -1,0 +1,12 @@
+> //static
+> /status//
+> idrange:1,2,10000
+> group_id:[1TO10]
+> !!group_id
+> title::2,content:1:2
+> title:-2
+> title:0.2 f.2 2.2..2
+> :title:...
+> title:2,content:999999999
+> maxquerytime:100000000000000
+> connecttimeout:999999999999999

@@ -727,21 +727,66 @@ int check_request_valid(const struct http_request *request) {
 // 返回http请求中路径或者NULL, 调用者负责删除数据
 static char * uri_get_path(const char * uri) {
   if (uri ==NULL || strlen(uri) == 0) return NULL;
+  const char * schema = "http://"; 
   const char * s = uri;
-  const char * p = strstr(s, "://");
-  if (p != NULL) s = p + 3;
-  p = strchr(s, '/');
-  if (p == NULL) return NULL;
-  s = p;
-  p = strchr(s, '?');
-  if (p == NULL) {
-    int len = strlen(s);
-    char * data = reinterpret_cast<char *>(malloc(len + 1));
-    snprintf(data, len + 1, "%s", s);  // add 0 at last
-    return data;
+  const char * p = strstr(s, schema);
+  if (p == s) {
+    s += strlen(schema);
   }
+  char * path = str_sub_inner(s, "/", true, "?", false);
+  if (path != NULL) {
+    int i;
+    // 跳过后续的 /status//
+    for (i=strlen(path)-1; i>=0; --i) {
+      if (path[i] == '/') {
+        path[i] = 0;
+      } else {
+        break;
+      }
+    }
+    // 合并先导的 //
+    for (i=0; path[i] == '/'; ++i);
+    i -= 1;
+    if (i != 0) {
+      int len = strlen(path+i);
+      memmove(path, path+i, len);
+      path[len]=0;
+    }
+  }
+  return path;
+}
 
-  int len = p - s;
+// 截取在源字符串中两个指定字符串之间的子串，第一个找不到，返回NULL，
+// 第二个找不到，表示到字符串的最后位置
+static char * str_sub_inner(const char * str, const char * first, bool include,
+      const char * second, bool include2) {
+  if (str == NULL || strlen(str) == 0 || first == NULL || strlen(first) == 0) {
+    return NULL;
+  }
+  const char * s = str;
+  const char * p = strstr(s, first);
+  if (p == NULL) {
+    return NULL;
+  }
+  if (!include) {
+    s = p + strlen(first);
+  } else {
+    s = p
+  }
+  if (second == NULL){
+    p = NULL;
+  } else {
+    p = strchr(s, '?');
+  }
+  int len = 0;
+  if (p == NULL) {
+    len = strlen(s);
+  } else {
+    len = p - s;
+    if (include2) {
+      len += strlen(second);
+    }
+  }
   char * data = reinterpret_cast<char *>(malloc(len + 1));
   strncpy(data, s, len);
   data[len] = 0;
@@ -801,7 +846,7 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
       }
 
       path = uri_get_path(request->uri);
-      DEBUG_LOG("path:%s, uri:%s", path, request->uri);  // path can is NULL
+      DEBUG_LOG("path:%s", path);  // path can is NULL
 
       body_data = buffer_new();
       if (body_data == NULL) {
@@ -860,7 +905,8 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
         const char * data = json.c_str();
         buffer_add(body_data, data, strlen(data));
       } else {
-        if (path == NULL || strlen(path) == 0 ||  strcmp(path, "/") == 0) {
+        if (path == NULL || strlen(path) == 0 || strcmp(path, "/") == 0
+              || strcmp(path, "/info") == 0) {
           DEBUG_LOG("/info.html");
           int res = read_small_text_file("info.html", body_data);
           if (res > 0) is_ok = true;
@@ -1070,9 +1116,21 @@ class SimpleWorkTask: public CTask {
         conn->outbuf = buffer_new();
 
         bool keep_alive = false;
-        int ret = buffer_read(conn->inbuf, conn->fd, 4096);
-        DEBUG_LOG("buffer_read:%d", ret);
-        if (ret > 0) {
+        const int read_block_size = 4096;
+        int read_size = 0;
+        {
+          int ret = 0;
+          do {
+            ret = buffer_read(conn->inbuf, conn->fd, read_block_size);
+            DEBUG_LOG("buffer_read:%d", ret);
+            if (ret >= 0) {
+              read_size += ret;
+            } else {  // read error
+              read_size = ret;
+            }
+          } while (ret == read_block_size);
+        }
+        if (read_size > 0) {
           http_handler(this->socket_client_, &keep_alive);
         }
 
@@ -1081,7 +1139,7 @@ class SimpleWorkTask: public CTask {
         buffer_free(conn->outbuf);
         conn->outbuf = NULL;
 
-        if (ret <= 0) {
+        if (read_size <= 0) {
           break;
         }
 

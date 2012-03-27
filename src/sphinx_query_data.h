@@ -76,7 +76,7 @@ class SphinxQueryData {
         float float_max;
       };
     };
-
+    
     // FIXME: 增强输入参数的格式检查
     explicit SphinxQueryData(QueryData qd) {
       // 初始默认值
@@ -103,6 +103,8 @@ class SphinxQueryData {
       // 查询的二次转换，细节解析和检查
       index = qd.index;
       q = qd.q;
+ #define THROW_F_E(name, str) \
+   do { throw string("错误的格式:[") + (#name) + "=" + (str) + "]"; } while(0)
       // 过滤器 filter - 属性值，属性范围，属性范围float
       {
         // filter=attr:a,b,c,d
@@ -110,8 +112,6 @@ class SphinxQueryData {
         // filter=attr:[a TO b]
         // filter=!attr:[a TO b]
         // 过滤器仅支持上述4种写法不支持小括号
-#define THROW_F_E(str) \
-        do { throw string("filters错误的格式:[") + (str) + "]"; } while(0)
         for (list<string>::iterator it = qd.filters.begin();
               it != qd.filters.end(); ++it) {
           Filter filter;
@@ -119,13 +119,13 @@ class SphinxQueryData {
           string::size_type s = filter.exclude ? 1 : 0;
           string::size_type p = it->find(':', s+1);
           if (p == string::npos || p == s) {
-            THROW_F_E((*it));
+            THROW_F_E(filter, *it);
           }
           filter.attr_name = it->substr(s, p - s);
           ++p;
           p = it->find_first_not_of(" ", p);
           if (p == string::npos) {
-            THROW_F_E(*it);
+            THROW_F_E(filter, *it);
           }
           if (it->at(p) == '[' || it->at(p) == '(') {
             // inner range | outer range
@@ -135,33 +135,33 @@ class SphinxQueryData {
             ++p;
             p = it->find_first_not_of(" ", p);
             if (p == string::npos) {
-              THROW_F_E(*it);
+              THROW_F_E(filter, *it);
             }
             s = p;
-            p = it->find("TO", s);
+            p = it->find(" TO ", s);
             if (p == string::npos) {
-              THROW_F_E(*it);
+              THROW_F_E(filter, *it);
             }
             string num_from = it->substr(s, p - s);
             trim_right(num_from);
             if (num_from.find_first_not_of(".0123456789") != string::npos) {
-              THROW_F_E(*it);
+              THROW_F_E(filter, *it);
             }
             p += 2;  // skip TO
             s = p;
             p = it->find_first_of("])", s);
             if (p == string::npos || p == s) {
-              THROW_F_E(*it);
+              THROW_F_E(filter, *it);
             }
             if ((p + 1) != it->size()) {
               // 前面已经Trim过了，这里的范围结束符一定要在最后
-              THROW_F_E(*it);
+              THROW_F_E(filter, *it);
             }
             if (it->at(p) == ')') to_is_inner = false;
             string num_to = it->substr(s, p - s);
             trim(num_to);
             if (num_to.find_first_not_of(".0123456789") != string::npos) {
-              THROW_F_E(*it);
+              THROW_F_E(filter, *it);
             }
             filter.type = SphinxQueryData::Filter::kIntRange;
             if (num_from.find('.') != string::npos ||
@@ -174,14 +174,18 @@ class SphinxQueryData {
               filter.int_max = atoi(num_to.c_str());
               if (!from_is_inner) filter.int_min += 1;
               if (!to_is_inner) filter.int_max -= 1;
-              if (filter.int_min > filter.int_max) THROW_F_E(*it);
+              if (filter.int_min > filter.int_max) {
+                THROW_F_E(filter, *it);
+              }
             } else {
               // float
               filter.float_min = atof(num_from.c_str());
               filter.float_max = atof(num_to.c_str());
               if (!from_is_inner) filter.float_min += 0.00001;
               if (!to_is_inner) filter.float_max -= 0.00001;
-              if (filter.float_min + 0.00001 > filter.float_max) THROW_F_E(*it);
+              if (filter.float_min + 0.00001 > filter.float_max) {
+                THROW_F_E(filter, *it);
+              }
             }
           } else {
             // values list
@@ -193,14 +197,13 @@ class SphinxQueryData {
               p = it->find(',', s);
               if (p != string::npos) {
                 if (p <= s) {
-                  THROW_F_E(*it);
+                  THROW_F_E(filter, *it);
                 }
               }
               string temp_value = it->substr(s, p == string::npos?p:(p - s));
               trim(temp_value);
-              if (temp_value.end() != find_if(temp_value.begin(),
-                      temp_value.end(), not1(std::ptr_fun(::isdigit)))) {
-                THROW_F_E(*it);
+              if (!all_is_digit(temp_value) || temp_value.size() > 10) {
+                THROW_F_E(filter, *it);
               }
 
               filter.values.push_back(atoi(temp_value.c_str()));
@@ -210,7 +213,6 @@ class SphinxQueryData {
           // 过滤器组装完毕
           filters.push_back(filter);
         }
-#undef THROW_F_E
       }  // ~filter
 
       // idrange
@@ -221,15 +223,9 @@ class SphinxQueryData {
         if (p != string::npos) {
           string min_str = qd.idrange.substr(0, p);
           string max_str = qd.idrange.substr(p + 1);
-          string::iterator it = find_if(min_str.begin(), min_str.end(),
-                not1(isdigit));
-          if (it != min_str.end()) { 
-            throw string("idrange 错误的格式:[") + qd.idrange + "]";
-          }
-          it = find_if(max_str.begin(), max_str.end(),
-                not1(isdigit));
-          if (it != max_str.end()) { 
-            throw string("idrange 错误的格式:[") + qd.idrange + "]";
+          if (!all_is_digit(min_str) || min_str.size() > 10
+                || !all_is_digit(max_str) || max_str.size() > 10) { 
+            THROW_F_E(idrange, qd.idrange);
           }
           idrange_min = atol(min_str.c_str());
           idrange_max = atol(max_str.c_str());
@@ -244,8 +240,7 @@ class SphinxQueryData {
       fieldweights_weights = NULL;
       if (qd.fieldweights.size() > 0) {
         fieldweights_num = count_if(qd.fieldweights.begin(),
-            qd.fieldweights.end(),
-            std::bind1st< std::equal_to<char> >(std::equal_to<char>(), ','));
+            qd.fieldweights.end(), bind1st(equal_to(), char(',')));
         fieldweights_fields = new const char*[fieldweights_num];
         fieldweights_weights = new int[fieldweights_num];
 
@@ -256,23 +251,30 @@ class SphinxQueryData {
 
           string::size_type p = qd.fieldweights.find_first_of(':', s);
           if (p == string::npos) {
-            throw string("fieldweights 错误的格式:[") + qd.fieldweights + "]";
+            THROW_F_E(fieldweights, qd.fieldweights);
           }
           string field_name = qd.fieldweights.substr(s, p - s);
           trim(field_name);
+          if (field_name.empty()) {
+            THROW_F_E(fieldweights, qd.fieldweights);
+          }
           char * p_field_temp = new char[field_name.size() + 1];
           strncpy(p_field_temp, field_name.c_str(), field_name.size());
           p_field_temp[field_name.size()] = 0;
           fieldweights_fields[i] = p_field_temp;
-
+          string weight;
           if (e != string::npos) {
-            string weight = qd.fieldweights.substr(p + 1, e - (p + 1));
-            trim(weight);
-            fieldweights_weights[i] = atoi(weight.c_str());
+            weight = qd.fieldweights.substr(p + 1, e - (p + 1));
           } else {
-            string weight = qd.fieldweights.substr(p + 1);
-            trim(weight);
-            fieldweights_weights[i] = atoi(weight.c_str());
+            weight = qd.fieldweights.substr(p + 1);
+          }
+          trim(weight);
+          if (!all_is_digit(weight) || weight.size() > 10) {
+            THROW_F_E(fieldweights, qd.fieldweights);
+          }
+          fieldweights_weights[i] = atoi(weight.c_str());
+          if (fieldweights_weights[i] <= 0) {
+            THROW_F_E(fieldweights, qd.fieldweights);
           }
         }
       }
@@ -382,6 +384,7 @@ class SphinxQueryData {
         throw "strSortMode is error![" + strSortMode + "]";
       }
       select = qd.select;
+ #undef THROW_F_E
     }
 
     ~SphinxQueryData() {
@@ -433,6 +436,7 @@ class SphinxQueryData {
     static const int kDEF_MATCHMODE = SPH_MATCH_EXTENDED2;
     static const int kDEF_RANKINGMODE = SPH_RANK_PROXIMITY_BM25;
     static const int kDEF_SORTMODE = SPH_SORT_RELEVANCE;
+
 };
 
 #endif  // SRC_SPHINXQUERYDATA_H_

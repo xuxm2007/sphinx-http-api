@@ -1344,25 +1344,17 @@ static int net_create_inet_sock ( sphinx_client * client )
 {
 	struct hostent * hp;
 	struct sockaddr_in sa;
-	int sock, res, err, optval;
+	int sock, res, err;
 
-    //zhaigy
-	//hp = gethostbyname ( client->host );
-	//if ( !hp )
-	//{
-	//	set_error ( client, "host name lookup failed (host=%s, error=%s)", client->host, sock_error() );
-	//	return -1;
-	//}
-
-    struct hostent hptmp;
-    char tmphstbuf[1024];
-    size_t hstbuflen = 1024;
-    int herr;
-	res = gethostbyname_r(client->host,&hptmp,tmphstbuf,hstbuflen,&hp,&herr);
-    if(res !=0 || hp==NULL || hp->h_addr==NULL){
-		set_error ( client, "host name lookup failed (host=%s, error=%s)", client->host, sock_error() );
-        return -1;
-    }
+  struct hostent hptmp;
+  char tmphstbuf[1024];
+  size_t hstbuflen = 1024;
+  int herr;
+  res = gethostbyname_r(client->host,&hptmp,tmphstbuf,hstbuflen,&hp,&herr);
+  if(res !=0 || hp==NULL || hp->h_addr==NULL){
+    set_error ( client, "host name lookup failed (host=%s, error=%s)", client->host, sock_error() );
+    return -1;
+  }
 
 	memset ( &sa, 0, sizeof(sa) );
 	memcpy ( &sa.sin_addr, hp->h_addr_list[0], hp->h_length );
@@ -1382,7 +1374,7 @@ static int net_create_inet_sock ( sphinx_client * client )
 		return -1;
 	}
 
-	optval = 1;
+	int optval = 1;
 #if defined(SO_NOSIGPIPE)
 	if ( setsockopt ( sock, SOL_SOCKET, SO_NOSIGPIPE, (void *)&optval, (socklen_t)sizeof(optval) ) < 0 )
 	{
@@ -1539,124 +1531,6 @@ static int net_connect_ex ( sphinx_client * client )
 	return client->sock;
 }
 
-static int net_connect ( sphinx_client * client )
-{
-	struct hostent * hp;
-	struct sockaddr_in sa;
-	struct timeval timeout;
-	fd_set fds_write;
-	int sock, to_wait, res, err, my_proto;
-
-	if ( client->sock>=0 )
-        return client->sock;
-
-    //zhaigy
-    //hp = gethostbyname ( client->host );
-	//if ( !hp )
-	//{
-	//	set_error ( client, "host name lookup failed (host=%s, error=%s)", client->host, sock_error() );
-	//	return -1;
-	//}
-    
-    struct hostent hptmp;
-    char tmphstbuf[1024];
-    size_t hstbuflen = 1024;
-    int herr;
-	res = gethostbyname_r(client->host,&hptmp,tmphstbuf,hstbuflen,&hp,&herr);
-    if(res !=0 || hp==NULL || hp->h_addr==NULL){
-		set_error ( client, "host name lookup failed (host=%s, error=%s)", client->host, sock_error() );
-        return -1;
-    }
-	memset ( &sa, 0, sizeof(sa) );
-	memcpy ( &sa.sin_addr, hp->h_addr_list[0], hp->h_length );
-	sa.sin_family = hp->h_addrtype;
-	sa.sin_port = htons ( (unsigned short)client->port );
-
-	sock = (int) socket ( hp->h_addrtype, SOCK_STREAM, 0 );
-	if ( sock<0 )
-	{
-		set_error ( client, "socket() failed: %s", sock_error() );
-		return -1;
-	}
-
-	if ( sock_set_nonblocking ( sock )<0 )
-	{
-		set_error ( client, "sock_set_nonblocking() failed: %s", sock_error() );
-		return -1;
-	}
-
-    //modify by zhaigy 2011-12-29
-    //http://portal.ucweb.local/discuz/forum.php?mod=redirect&tid=7793&goto=lastpost#lastpost
-    //Delayed Ack
-    int opt_nodelay_flag=1;
-    setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, (void *)&opt_nodelay_flag, sizeof(opt_nodelay_flag));
-    //end zhaigy
-
-	res = connect ( sock, (struct sockaddr*)&sa, sizeof(sa) );
-	if ( res==0 )
-		return sock;
-
-	err = sock_errno();
-#ifdef EINPROGRESS
-	if ( err!=EWOULDBLOCK && err!=EINPROGRESS )
-#else
-	if ( err!=EWOULDBLOCK )
-#endif
-	{
-		set_error ( client, "connect() failed: %s", sock_error() );
-		return -1;
-	}
-
-	to_wait = (int)( 1000*client->timeout );
-	if ( to_wait<=0 )
-		to_wait = CONNECT_TIMEOUT_MSEC;
-
-	{
-		timeout.tv_sec = to_wait / 1000; // full seconds
-		timeout.tv_usec = ( to_wait % 1000 ) * 1000; // remainder is msec, so *1000 for usec
-		FD_ZERO ( &fds_write );
-		SPH_FD_SET ( sock, &fds_write );
-		res = select ( 1+sock, NULL, &fds_write, NULL, &timeout );
-
-		if ( res>=0 && FD_ISSET ( sock, &fds_write ) )
-		{
-			sock_set_blocking ( sock );
-			// now send major client protocol version
-			my_proto = htonl ( 1 ); 
-			if ( !net_write ( sock, (char*)&my_proto, sizeof(my_proto), client ) )
-			{
-				sock_close ( sock );
-				set_error ( client, "failed to send client protocol version" );
-				return -1;
-			}
-
-			// check daemon version
-			if ( !net_read ( sock, (char*)&my_proto, sizeof(my_proto), client ) )
-			{
-				sock_close ( sock );
-				return -1;
-			}
-
-			my_proto = ntohl ( my_proto );
-			if ( my_proto<1 )
-			{
-				sock_close ( sock );
-				set_error ( client, "expected searchd protocol version 1+, got version %d", my_proto );
-				return -1;
-			}
-
-			return sock;
-		}
-
-		/*!COMMIT handle EINTR here*/
-
-		sock_close ( sock );
-		set_error ( client, "connect() timed out" );
-		return -1;
-	}
-}
-
-
 static unsigned short unpack_short ( char ** cur )
 {
 	unsigned short v;
@@ -1713,7 +1587,7 @@ static void net_get_response ( int fd, sphinx_client * client )
 {
 	int len;
 	char header_buf[32], *cur, *response;
-	unsigned short status, ver;
+	unsigned short status;
 
 	// dismiss previous response
 	if ( client->response_buf )
@@ -1734,7 +1608,7 @@ static void net_get_response ( int fd, sphinx_client * client )
 
 	cur = header_buf;
 	status = unpack_short ( &cur );
-	ver = unpack_short ( &cur );
+	short ver = unpack_short ( &cur );
 	len = unpack_int ( &cur );
 
 	// sanity check the length, alloc the buffer
@@ -2391,7 +2265,7 @@ sphinx_keyword_info * sphinx_build_keywords ( sphinx_client * client, const char
 char ** sphinx_status ( sphinx_client * client, int * num_rows, int * num_cols )
 {
 	int i, j, k, n;
-	char *p, *pmax, *req, *buf, **res;
+	char *p, *req, *buf, **res;
 
 	// check args
 	if ( !client || !num_rows || !num_cols )
@@ -2422,7 +2296,7 @@ char ** sphinx_status ( sphinx_client * client, int * num_rows, int * num_cols )
 
 	// parse response
 	p = client->response_start;
-	pmax = client->response_start + client->response_len; // max position for checks, to protect against broken responses
+	int pmax = client->response_start + client->response_len; // max position for checks, to protect against broken responses
 
 	*num_rows = unpack_int ( &p );
 	*num_cols = unpack_int ( &p );

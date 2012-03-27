@@ -13,7 +13,7 @@ sleep 2
 cd $DIR
 
 for ((i=0; i<1; ++i)) ; do
-  #sh ./test.sh
+  sh ./test.sh
   sh ./test_fail.sh
 done
 

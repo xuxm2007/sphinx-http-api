@@ -12,7 +12,7 @@ too_long()
   search
 }
 too_long;
-exit 0;
+
 info()
 {
   #info

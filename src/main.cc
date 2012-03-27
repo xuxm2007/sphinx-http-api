@@ -724,6 +724,45 @@ int check_request_valid(const struct http_request *request) {
   return 0;
 }
 
+
+// 截取在源字符串中两个指定字符串之间的子串，第一个找不到，返回NULL，
+// 第二个找不到，表示到字符串的最后位置
+static char * str_sub_inner(const char * str, const char * first, bool include,
+      const char * second, bool include2) {
+  if (str == NULL || strlen(str) == 0 || first == NULL || strlen(first) == 0) {
+    return NULL;
+  }
+  const char * s = str;
+  const char * p = strstr(s, first);
+  if (p == NULL) {
+    return NULL;
+  }
+  if (!include) {
+    s = p + strlen(first);
+  } else {
+    s = p;
+  }
+  if (second == NULL){
+    p = NULL;
+  } else {
+    p = strchr(s, '?');
+  }
+  int len = 0;
+  if (p == NULL) {
+    len = strlen(s);
+  } else {
+    len = p - s;
+    if (include2) {
+      len += strlen(second);
+    }
+  }
+  char * data = reinterpret_cast<char *>(malloc(len + 1));
+  strncpy(data, s, len);
+  data[len] = 0;
+
+  return data;
+}
+
 // 返回http请求中路径或者NULL, 调用者负责删除数据
 static char * uri_get_path(const char * uri) {
   if (uri ==NULL || strlen(uri) == 0) return NULL;
@@ -754,44 +793,6 @@ static char * uri_get_path(const char * uri) {
     }
   }
   return path;
-}
-
-// 截取在源字符串中两个指定字符串之间的子串，第一个找不到，返回NULL，
-// 第二个找不到，表示到字符串的最后位置
-static char * str_sub_inner(const char * str, const char * first, bool include,
-      const char * second, bool include2) {
-  if (str == NULL || strlen(str) == 0 || first == NULL || strlen(first) == 0) {
-    return NULL;
-  }
-  const char * s = str;
-  const char * p = strstr(s, first);
-  if (p == NULL) {
-    return NULL;
-  }
-  if (!include) {
-    s = p + strlen(first);
-  } else {
-    s = p
-  }
-  if (second == NULL){
-    p = NULL;
-  } else {
-    p = strchr(s, '?');
-  }
-  int len = 0;
-  if (p == NULL) {
-    len = strlen(s);
-  } else {
-    len = p - s;
-    if (include2) {
-      len += strlen(second);
-    }
-  }
-  char * data = reinterpret_cast<char *>(malloc(len + 1));
-  strncpy(data, s, len);
-  data[len] = 0;
-
-  return data;
 }
 
 /**

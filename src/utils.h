@@ -23,7 +23,7 @@ inline std::string & trim(std::string & source) {
 }
 
 inline bool all_is_digit(const string str) {
-  return str.end() == find_if(str.begin(), str.end(), not1(ptr_fun(isdigit))); 
+  return str.end() == find_if(str.begin(), str.end(), not1(ptr_fun(::isdigit))); 
 }
 /* 
 #define ISSPACE(x) \

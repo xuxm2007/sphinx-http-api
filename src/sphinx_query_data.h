@@ -240,7 +240,7 @@ class SphinxQueryData {
       fieldweights_weights = NULL;
       if (qd.fieldweights.size() > 0) {
         fieldweights_num = count_if(qd.fieldweights.begin(),
-            qd.fieldweights.end(), bind1st(equal_to(), char(',')));
+            qd.fieldweights.end(), bind1st(equal_to<char>(),','));
         fieldweights_fields = new const char*[fieldweights_num];
         fieldweights_weights = new int[fieldweights_num];
 

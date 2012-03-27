@@ -220,8 +220,18 @@ class SphinxQueryData {
         string::size_type p = qd.idrange.find_first_of(',', 0);
         if (p != string::npos) {
           string min_str = qd.idrange.substr(0, p);
-          idrange_min = atol(min_str.c_str());
           string max_str = qd.idrange.substr(p + 1);
+          string::iterator it = find_if(min_str.begin(), min_str.end(),
+                not1(isdigit));
+          if (it != min_str.end()) { 
+            throw string("idrange 错误的格式:[") + qd.idrange + "]";
+          }
+          it = find_if(max_str.begin(), max_str.end(),
+                not1(isdigit));
+          if (it != max_str.end()) { 
+            throw string("idrange 错误的格式:[") + qd.idrange + "]";
+          }
+          idrange_min = atol(min_str.c_str());
           idrange_max = atol(max_str.c_str());
         }
       }
@@ -246,7 +256,7 @@ class SphinxQueryData {
 
           string::size_type p = qd.fieldweights.find_first_of(':', s);
           if (p == string::npos) {
-            throw string("fieldweights 错误的格式:[")+qd.fieldweights+"]";
+            throw string("fieldweights 错误的格式:[") + qd.fieldweights + "]";
           }
           string field_name = qd.fieldweights.substr(s, p - s);
           trim(field_name);

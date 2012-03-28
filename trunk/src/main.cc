@@ -154,7 +154,8 @@ int parserQuery(keyvalq & http_query, QueryData & qd) {
     switch (kv->name[0]) {
       case 'c':
         if (strcmp("connecttimeout", kv->name) == 0) {
-          qd.connecttimeout = atoi(kv->value);
+          // qd.connecttimeout = atoi(kv->value);
+          qd.connecttimeout = kv->value;
         } else {
           NO_SUPPORT_QUERY_PARAM;
         }
@@ -188,7 +189,8 @@ int parserQuery(keyvalq & http_query, QueryData & qd) {
         break;
       case 'm':
         if (strcmp("maxquerytime", kv->name) == 0) {
-          qd.maxquerytime = atoi(kv->value);
+          // qd.maxquerytime = atoi(kv->value);
+          qd.maxquerytime = kv->value;
         } else if (strcmp("matchmode", kv->name) == 0) {
           qd.matchmode = kv->value;
         } else {
@@ -204,9 +206,11 @@ int parserQuery(keyvalq & http_query, QueryData & qd) {
         break;
       case 'r':  // rows
         if (strcmp("rows", kv->name) == 0) {
-          qd.rows = atoi(kv->value);
+          // qd.rows = atoi(kv->value);
+          qd.rows = kv->value;
         } else if (strcmp("retries", kv->name) == 0) {
-          qd.retries = atoi(kv->value);
+          // qd.retries = atoi(kv->value);
+          qd.retries = kv->value;
         } else if (strcmp("rankingmode", kv->name) == 0) {
           qd.rankingmode = kv->value;
         } else {
@@ -215,7 +219,8 @@ int parserQuery(keyvalq & http_query, QueryData & qd) {
         break;
       case 's':  // start
         if (strcmp("start", kv->name) == 0) {
-          qd.start = atoi(kv->value);
+          // qd.start = atoi(kv->value);
+          qd.start = kv->value;
         } else if (strcmp("sortmode", kv->name) == 0) {
           qd.sortmode = kv->value;
         } else if (strcmp("select", kv->name) == 0) {

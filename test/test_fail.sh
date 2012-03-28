@@ -11,7 +11,7 @@ too_long()
   done
   search
 }
-too_long;
+#too_long;
 
 info()
 {
@@ -29,9 +29,7 @@ info;
 
 #search -- matchmode
 MMS={SPH_MATCH_ALL_ERR "%20SPH_MATCH_EXTENDED2%20" "+SPH_MATCH_EXTENDED2+" "=SPH_MATCH_EXTENDED2"}
-clean
-M=""
-search
+clean2;
 for var in $MMS; do
   M="&matchmode=${var}";
   search
@@ -47,7 +45,7 @@ search
 
 #search -- rankingmode
 RKS={SPH_RANK_PROXIMITY_BM25_}
-clean
+clean2
 for var in $RMS; do
   R="&rankingmode=$var"
   search
@@ -55,14 +53,14 @@ done
 
 #search -- sortmode
 SMS={SPH_SORT_ATTR_DESC${MH}group_id SPH_SORT_TIME_SEGMENTS${MH}date "SPH_SORT_EXPR:(attrName+attrName2)/2 desc"}
-clean
+clean2
 for var in $SMS; do
   S="&sortmode=$var"
   search
 done
 
 #search -- groupby
-clean
+clean2
 G="&groupby=SPH_GROUPBY_DAY${MH}group_id${MH}@group+desc"
 search
 G="&groupby=SPH_GROUPBY_WEEK${MH}date_added${MH}@group+desca"
@@ -71,14 +69,14 @@ search
 #groupdistinct
 
 #search -- idrange
-clean
+clean2
 ID="&idrange=1,10000"
 search
 ID="&idrange=1,2,10000"
 search
 
 #search -- filter
-clean
+clean2
 F="&filter=group_id:1,2,3,4,5,6,7,8,9,10"
 search
 F="&filter=group_id${MH}${ZKH_Z}1TO10${ZKH_Y}"
@@ -91,10 +89,12 @@ F="&filter=group_id${MH}${ZKH_Z}${ZKH_Z}1+TO+10${KH_Y}"
 search
 F="&filter=group_id${MH}${ZKH_Z}1.1.1+TO+-010${KH_Y}"
 search
+F="&filter=group_id${MH}${ZKH_Z}1.1+TO+10${KH_Y}"
+search
 
 
 #search -- fieldweights
-clean
+clean2
 FW="&fieldweights=title${MH}${MH}2${DH}content${MH}1${MH}2"
 search
 FW="&fieldweights=title${MH}-2${DH}content${MH}12"
@@ -115,22 +115,23 @@ FW="&fieldweights=title${MH}2${DH}content${MH}9999999999999999999999999999"
 search
 
 #search -- limit
-clean
+clean2
 ST="&start=-2"
 RS="&rows=8"
 search
-ST="&start=20"
+clean2
+RS="&rows=0"
 search
 RS="&rows=-1"
 search
 
 
 #search -- maxquerytime
-clean
+clean2
 QT="&maxquerytime=10000000000000000000000000000"
 search
 
-clean
+clean2
 QT="&maxquerytime=10000000000000000000000000000"
 for((i=0;i<20;++i)); do
   QT="${QT}00000000000000000000000000000000000000000000000000000000000000000000"
@@ -141,6 +142,6 @@ for((i=0;i<100;++i)); do
 done
 search
 
-clean
+clean2
 QT="&connecttimeout=9999999999999999"
 search

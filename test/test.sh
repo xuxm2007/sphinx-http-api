@@ -98,8 +98,6 @@ F="&filter=group_id${MH}${ZKH_Z}1+TO+10${KH_Y}"
 search
 F="&filter=${TH}group_id${MH}${ZKH_Z}1+TO+10${KH_Y}"
 search
-F="&filter=group_id${MH}${ZKH_Z}1.1+TO+10${KH_Y}"
-search
 
 #search -- fieldweights
 clean

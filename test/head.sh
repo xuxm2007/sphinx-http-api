@@ -22,9 +22,14 @@ ZKH_Y="%5D" #]
 #CURL="curl -v -g -s"
 CURL="curl -s -o /dev/null"
 
-clean()
+clean2()
 {
   M=""; R=""; S=""; ST=""; RS=""; F=""; ID=""; FW=""; G=""; GD=""; SE=""; QT="";
+}
+
+clean()
+{
+  clean2; 
   M="&matchmode=SPH_MATCH_EXTENDED2"
   R="&rankingmode=SPH_RANK_PROXIMITY_BM25"
   S="&sortmode=SPH_SORT_RELEVANCE"

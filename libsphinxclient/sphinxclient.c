@@ -1374,8 +1374,8 @@ static int net_create_inet_sock ( sphinx_client * client )
 		return -1;
 	}
 
-	int optval = 1;
 #if defined(SO_NOSIGPIPE)
+	int optval = 1;
 	if ( setsockopt ( sock, SOL_SOCKET, SO_NOSIGPIPE, (void *)&optval, (socklen_t)sizeof(optval) ) < 0 )
 	{
 		set_error ( client, "setsockopt() failed: %s", sock_error() );
@@ -1608,7 +1608,8 @@ static void net_get_response ( int fd, sphinx_client * client )
 
 	cur = header_buf;
 	status = unpack_short ( &cur );
-	short ver = unpack_short ( &cur );
+	// short ver = unpack_short ( &cur );
+	unpack_short ( &cur );
 	len = unpack_int ( &cur );
 
 	// sanity check the length, alloc the buffer
@@ -2265,7 +2266,7 @@ sphinx_keyword_info * sphinx_build_keywords ( sphinx_client * client, const char
 char ** sphinx_status ( sphinx_client * client, int * num_rows, int * num_cols )
 {
 	int i, j, k, n;
-	char *p, *req, *buf, **res;
+	char *p, *req, *buf, **res, *pmax;
 
 	// check args
 	if ( !client || !num_rows || !num_cols )
@@ -2296,7 +2297,7 @@ char ** sphinx_status ( sphinx_client * client, int * num_rows, int * num_cols )
 
 	// parse response
 	p = client->response_start;
-	int pmax = client->response_start + client->response_len; // max position for checks, to protect against broken responses
+	pmax = client->response_start + client->response_len; // max position for checks, to protect against broken responses
 
 	*num_rows = unpack_int ( &p );
 	*num_cols = unpack_int ( &p );

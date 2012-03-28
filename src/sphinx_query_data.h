@@ -19,25 +19,20 @@ using namespace std;  // NOLINT
 
 /**
  * 从输入解析的查询数据
+ * FIXME: 预备去除
  */
 class QueryData {
   public:
-    QueryData() : start(0), maxquerytime(0) {
-      rows = 20;
-      retries = 0;
-      connecttimeout = 0;
-    }
-
     string index;
     string q;
     list<string> filters;
     string idrange;
-    int start;
-    int rows;
+    string start;
+    string rows;
     string fieldweights;
-    int retries;
-    int maxquerytime;
-    int connecttimeout;
+    string retries;
+    string maxquerytime;
+    string connecttimeout;
     string groupby;
     string groupdistinct;
     string matchmode;
@@ -79,14 +74,34 @@ class SphinxQueryData {
     
     // FIXME: 增强输入参数的格式检查
     explicit SphinxQueryData(QueryData qd) {
-      // 初始默认值
-      start = qd.start;
-      rows = qd.rows;
-
-      retries = qd.retries;
-      maxquerytime = qd.maxquerytime;
-      connecttimeout = qd.connecttimeout;
+ #define THROW_F_E(key, str) \
+      do { throw string("格式错误:[") + (#key) + "=" + (str) + "]"; } while(0)
+ #define STR_TO_NUMB(name) \
+      do { \
+        if (qd.name.empty()) break; \
+        if (qd.name.size() > 9 || !all_is_digit(qd.name)) { \
+          THROW_F_E(name, qd.name); \
+        } \
+        name = atoi(qd.name.c_str()); \
+        if (name < 0) { \
+          THROW_F_E(name, qd.name); \
+        } \
+      } while(0)
       
+      start = 0;
+      rows = 20;
+      retries = 1;
+      maxquerytime = 3000;
+      connecttimeout = 1000;
+      
+      STR_TO_NUMB(start);
+      STR_TO_NUMB(rows);
+      STR_TO_NUMB(retries);
+      STR_TO_NUMB(maxquerytime);
+      STR_TO_NUMB(connecttimeout);
+ #undef STR_TO_NUMB
+
+      // 初始默认值
       idrange_min = -1L;
       idrange_max = -1L;
       
@@ -103,8 +118,6 @@ class SphinxQueryData {
       // 查询的二次转换，细节解析和检查
       index = qd.index;
       q = qd.q;
- #define THROW_F_E(name, str) \
-   do { throw string("错误的格式:[") + (#name) + "=" + (str) + "]"; } while(0)
       // 过滤器 filter - 属性值，属性范围，属性范围float
       {
         // filter=attr:a,b,c,d
@@ -138,7 +151,8 @@ class SphinxQueryData {
               THROW_F_E(filter, *it);
             }
             s = p;
-            p = it->find(" TO ", s);
+            const char * TO = " TO ";
+            p = it->find(TO, s);
             if (p == string::npos) {
               THROW_F_E(filter, *it);
             }
@@ -147,7 +161,7 @@ class SphinxQueryData {
             if (num_from.find_first_not_of(".0123456789") != string::npos) {
               THROW_F_E(filter, *it);
             }
-            p += 2;  // skip TO
+            p += strlen(TO);  // skip TO
             s = p;
             p = it->find_first_of("])", s);
             if (p == string::npos || p == s) {
@@ -202,7 +216,7 @@ class SphinxQueryData {
               }
               string temp_value = it->substr(s, p == string::npos?p:(p - s));
               trim(temp_value);
-              if (!all_is_digit(temp_value) || temp_value.size() > 10) {
+              if (!all_is_digit(temp_value) || temp_value.size() > 9) {
                 THROW_F_E(filter, *it);
               }
 
@@ -223,8 +237,8 @@ class SphinxQueryData {
         if (p != string::npos) {
           string min_str = qd.idrange.substr(0, p);
           string max_str = qd.idrange.substr(p + 1);
-          if (!all_is_digit(min_str) || min_str.size() > 10
-                || !all_is_digit(max_str) || max_str.size() > 10) { 
+          if (!all_is_digit(min_str) || min_str.size() > 9
+                || !all_is_digit(max_str) || max_str.size() > 9) { 
             THROW_F_E(idrange, qd.idrange);
           }
           idrange_min = atol(min_str.c_str());
@@ -269,7 +283,7 @@ class SphinxQueryData {
             weight = qd.fieldweights.substr(p + 1);
           }
           trim(weight);
-          if (!all_is_digit(weight) || weight.size() > 10) {
+          if (!all_is_digit(weight) || weight.size() > 9) {
             THROW_F_E(fieldweights, qd.fieldweights);
           }
           fieldweights_weights[i] = atoi(weight.c_str());

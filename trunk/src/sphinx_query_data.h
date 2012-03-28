@@ -3,8 +3,8 @@
  *
  *  Copyright 2011 zhaigy hontlong@gmail.com
  */
-#ifndef SRC_SPHINXQUERYDATA_H_
-#define SRC_SPHINXQUERYDATA_H_
+#ifndef SRC_SPHINX_QUERY_DATA_H_
+#define SRC_SPHINX_QUERY_DATA_H_
 
 #include <string>
 #include <numeric>
@@ -71,12 +71,12 @@ class SphinxQueryData {
         float float_max;
       };
     };
-    
+
     // FIXME: 增强输入参数的格式检查
     explicit SphinxQueryData(QueryData qd) {
- #define THROW_F_E(key, str) \
-      do { throw string("格式错误:[") + (#key) + "=" + (str) + "]"; } while(0)
- #define STR_TO_NUMB(name) \
+#define THROW_F_E(key, str) \
+      do { throw string("格式错误:[") + (#key) + "=" + (str) + "]"; } while (0)
+#define STR_TO_NUMB(name) \
       do { \
         if (qd.name.empty()) break; \
         if (qd.name.size() > 9 || !all_is_digit(qd.name)) { \
@@ -86,35 +86,35 @@ class SphinxQueryData {
         if (name < 0) { \
           THROW_F_E(name, qd.name); \
         } \
-      } while(0)
-      
+      } while (0)
+
       start = 0;
       rows = 20;
       retries = 1;
       maxquerytime = 3000;
       connecttimeout = 1000;
-      
+
       STR_TO_NUMB(start);
       STR_TO_NUMB(rows);
       STR_TO_NUMB(retries);
       STR_TO_NUMB(maxquerytime);
       STR_TO_NUMB(connecttimeout);
- #undef STR_TO_NUMB
+#undef STR_TO_NUMB
 
       // 初始默认值
       idrange_min = -1L;
       idrange_max = -1L;
-      
+
       fieldweights_num = 0;
       fieldweights_fields = NULL;
       fieldweights_weights = NULL;
-      
+
       groupby_func = SPH_GROUPBY_ATTR;
-      
+
       matchmode = SPH_MATCH_EXTENDED2;
       rankingmode = SPH_RANK_PROXIMITY_BM25;
       sortmode = SPH_SORT_RELEVANCE;
-      
+
       // 查询的二次转换，细节解析和检查
       index = qd.index;
       q = qd.q;
@@ -238,7 +238,7 @@ class SphinxQueryData {
           string min_str = qd.idrange.substr(0, p);
           string max_str = qd.idrange.substr(p + 1);
           if (!all_is_digit(min_str) || min_str.size() > 9
-                || !all_is_digit(max_str) || max_str.size() > 9) { 
+                || !all_is_digit(max_str) || max_str.size() > 9) {
             THROW_F_E(idrange, qd.idrange);
           }
           idrange_min = atol(min_str.c_str());
@@ -254,7 +254,7 @@ class SphinxQueryData {
       fieldweights_weights = NULL;
       if (qd.fieldweights.size() > 0) {
         fieldweights_num = count_if(qd.fieldweights.begin(),
-            qd.fieldweights.end(), bind1st(equal_to<char>(),','));
+            qd.fieldweights.end(), bind1st(equal_to<char>(), ','));
         fieldweights_fields = new const char*[fieldweights_num];
         fieldweights_weights = new int[fieldweights_num];
 
@@ -398,7 +398,7 @@ class SphinxQueryData {
         throw "strSortMode is error![" + strSortMode + "]";
       }
       select = qd.select;
- #undef THROW_F_E
+#undef THROW_F_E
     }
 
     ~SphinxQueryData() {
@@ -416,7 +416,7 @@ class SphinxQueryData {
     }
 
     // fields
-    
+
     string index;
     string q;
 
@@ -450,7 +450,6 @@ class SphinxQueryData {
     static const int kDEF_MATCHMODE = SPH_MATCH_EXTENDED2;
     static const int kDEF_RANKINGMODE = SPH_RANK_PROXIMITY_BM25;
     static const int kDEF_SORTMODE = SPH_SORT_RELEVANCE;
-
 };
 
-#endif  // SRC_SPHINXQUERYDATA_H_
+#endif  // SRC_SPHINX_QUERY_DATA_H_

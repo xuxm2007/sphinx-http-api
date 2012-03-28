@@ -654,7 +654,7 @@ int read_small_text_file(const char * file_name, struct buffer * buf) {
   file += file_name;
   FILE * fp = fopen(file.c_str(), "rb");
   if (fp == NULL) {
-    ERROR_LOG("open file %s error.",file.c_str()); 
+    ERROR_LOG("open file %s error.", file.c_str());
     return -1;
   }
   int64_t file_size = get_file_size(fp);
@@ -747,7 +747,7 @@ static char * str_sub_inner(const char * str, const char * first, bool include,
   } else {
     s = p;
   }
-  if (second == NULL){
+  if (second == NULL) {
     p = NULL;
   } else {
     p = strchr(s, '?');
@@ -771,7 +771,7 @@ static char * str_sub_inner(const char * str, const char * first, bool include,
 // 返回http请求中路径或者NULL, 调用者负责删除数据
 static char * uri_get_path(const char * uri) {
   if (uri ==NULL || strlen(uri) == 0) return NULL;
-  const char * schema = "http://"; 
+  const char * schema = "http://";
   const char * s = uri;
   const char * p = strstr(s, schema);
   if (p == s) {
@@ -781,7 +781,7 @@ static char * uri_get_path(const char * uri) {
   if (path != NULL) {
     int i;
     // 跳过后续的 /status//
-    for (i=strlen(path)-1; i>=0; --i) {
+    for (i = strlen(path) - 1; i >= 0; --i) {
       if (path[i] == '/') {
         path[i] = 0;
       } else {
@@ -789,11 +789,11 @@ static char * uri_get_path(const char * uri) {
       }
     }
     // 合并先导的 //
-    for (i=0; path[i] == '/'; ++i);
+    for (i = 0; path[i] == '/'; ++i);
     i -= 1;
     if (i != 0) {
-      int len = strlen(path+i);
-      memmove(path, path+i, len);
+      int len = strlen(path + i);
+      memmove(path, path + i, len);
       path[len]=0;
     }
   }
@@ -1032,11 +1032,13 @@ static int check_config_parameter() {
   return 0;
 }
 
-void ExecSafeExit(int) {
-  // struct timeval tv;
-  // tv.tv_sec = 1;
-  // tv.tv_usec = 0;
-  g_running = false;
+void ExecSafeExit(int sign) {
+  // ignore sign
+  if (sign == 0) {
+    g_running = false;
+  } else {
+    g_running = false;
+  }
 }
 
 /**
@@ -1394,7 +1396,7 @@ int daemonize(int chrt, int noclose) {
 int main(int argc, char **argv) {
   if (argc > 0) {
     printf("input params:");
-    for (int i=0; i< argc; ++i) {
+    for (int i = 0; i < argc; ++i) {
         char *s = argv[0];
         printf("\t%s\n", s);
     }

@@ -24,6 +24,7 @@ OBJ    := $(OBJ:%.cpp=%.o)
 OBJ    := $(OBJ:%.cc=%.o)
 
 TARGET := sphinx_http_api
+INSTALLDIRNAME := sphinx-http-api
 
 all: INFO $(TARGET)
 
@@ -66,3 +67,22 @@ clean:
 		rm -f ./$$d/*.o; \
 	done
 
+install:$(TARGET)
+	if ( test -z $(PREFIX) ); then
+		return;
+	fi
+	if ( test ! -d $(PREFIX) ); then
+		mkdir -p $(PREFIX);
+	fi
+	cp -f ./$(TARGET) $(PREFIX)/
+	cp -rf ./web $(PREFIX)/
+	cp -rf ./etc $(PREFIX)/
+	mkdir -p $(PREFIX)/logs
+	echo $(PREFIX) >> install.list.txt
+ 
+uninstall:
+	if ( test -d $(PREFIX) ); then
+		rm -rf $(PREFIX)/web
+		rm -rf $(PREFIX)/etc
+		rm -rf $(PREFIX)/logs
+	fi

@@ -3,8 +3,8 @@
  * Copyright 2012 zhaigy hontlong@gmail.com
  */
 
-#ifndef SRC_SEARCHRESULT_H_
-#define SRC_SEARCHRESULT_H_
+#ifndef SRC_SEARCH_RESULT_H_
+#define SRC_SEARCH_RESULT_H_
 
 
 class SearchResult {
@@ -113,5 +113,5 @@ class SearchResult {
     }
 };
 
-#endif  // SRC_SEARCHRESULT_H_
+#endif  // SRC_SEARCH_RESULT_H_
 

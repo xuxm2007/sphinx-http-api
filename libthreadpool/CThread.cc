@@ -121,7 +121,7 @@ void* CThreadPool::ThreadFunc(void * p_thread_pool) {
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
   CThreadPool * pool = reinterpret_cast<CThreadPool *>(p_thread_pool);
 
-  int WAIT=100 + (int)(((unsigned int)(tid))%100); //s
+  int WAIT = 100 + static_cast<int>((static_cast<unsigned int>(tid)) % 100);
   struct timespec tp;
   tp.tv_sec = time(NULL) + WAIT;
   tp.tv_nsec = 0;
@@ -166,7 +166,7 @@ void* CThreadPool::ThreadFunc(void * p_thread_pool) {
       }
       try {
         task->Run();
-      } catch (...) {
+      } catch(...) {
         // FIXME: 打印
       }
       // FIXME: 这行的代码位置不是很合适，现在还没有找到合适的释放任务的地方

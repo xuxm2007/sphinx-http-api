@@ -67,13 +67,11 @@ clean:
 		rm -f ./$$d/*.o; \
 	done
 
+PREFIX ?= $(HOME)/local/sphinx-http-api
+
 install:$(TARGET)
-	if ( test -z $(PREFIX) ); then
-		return;
-	fi
-	if ( test ! -d $(PREFIX) ); then
-		mkdir -p $(PREFIX);
-	fi
+	if ( test -z $(PREFIX) ); then return; fi
+	if ( test ! -d $(PREFIX) ); then mkdir -p $(PREFIX); fi
 	cp -f ./$(TARGET) $(PREFIX)/
 	cp -rf ./web $(PREFIX)/
 	cp -rf ./etc $(PREFIX)/
@@ -81,8 +79,4 @@ install:$(TARGET)
 	echo $(PREFIX) >> install.list.txt
  
 uninstall:
-	if ( test -d $(PREFIX) ); then
-		rm -rf $(PREFIX)/web
-		rm -rf $(PREFIX)/etc
-		rm -rf $(PREFIX)/logs
-	fi
+	if ( test -d $(PREFIX) ); then rm -rf $(PREFIX)/web $(PREFIX)/etc $(PREFIX)/logs; fi

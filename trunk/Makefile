@@ -60,23 +60,27 @@ check:
 	./cpplint/cpplint.py --filter=-runtime/references,-readability/streams,-build/namespaces $(SRC2)
 
 clean:
-	rm -f $(TARGET) $(OBJ) $(OBJ)
+	@rm -f $(TARGET) $(OBJ) $(OBJ)
 	@for d in $(SUBDIR2); do \
 		rm -f ./$$d/*.gcno; \
 		rm -f ./$$d/*.gcda; \
 		rm -f ./$$d/*.o; \
 	done
+	@rm -f test/*.log*
+	@rm -f logs/*.log
 
 PREFIX ?= $(HOME)/local/sphinx-http-api
 
 install:$(TARGET)
-	if ( test -z $(PREFIX) ); then return; fi
-	if ( test ! -d $(PREFIX) ); then mkdir -p $(PREFIX); fi
+	@if ( test -z $(PREFIX) ); then return; fi
+	@if ( test ! -d $(PREFIX) ); then mkdir -p $(PREFIX); fi
 	cp -f ./$(TARGET) $(PREFIX)/
 	cp -rf ./web $(PREFIX)/
 	cp -rf ./etc $(PREFIX)/
 	mkdir -p $(PREFIX)/logs
-	echo $(PREFIX) >> install.list.txt
+	@echo $(PREFIX) >> install.list.txt
  
 uninstall:
-	if ( test -d $(PREFIX) ); then rm -rf $(PREFIX)/web $(PREFIX)/etc $(PREFIX)/logs; fi
+	@if ( test -d $(PREFIX) ); then \
+		rm -rf $(PREFIX)/web $(PREFIX)/etc $(PREFIX)/logs $(PREFIX)/$(TARGET); \
+	fi

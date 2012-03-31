@@ -910,42 +910,42 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
         http_clear_headers(&http_query);
         const char * data = json.c_str();
         buffer_add(body_data, data, strlen(data));
-      } else {
-        if (path == NULL || strlen(path) == 0 || strcmp(path, "/") == 0
-              || strcmp(path, "/info") == 0) {
-          DEBUG_LOG("/info.html");
-          int res = read_small_text_file("info.html", body_data);
-          if (res > 0) is_ok = true;
-          is_html = true;
-        } else if (strcmp(path, "/status") == 0) {
-          DEBUG_LOG("/status");
-          // 代理的统计信息
-          string json;
-          is_ok = deal_status_handler(&json);
-          const char * data = json.c_str();
-          buffer_add(body_data, data, strlen(data));
-        } else if (strcmp(path, "/statistic") == 0) {
-          DEBUG_LOG("/statistic");
-          string json = deal_statistic_handler();
-          const char * data = json.c_str();
-          buffer_add(body_data, data, strlen(data));
-          is_ok = true;
-        } else if (strcmp(path, "/debug") == 0) {
-          DEBUG_LOG("/debug");
-          int res = read_small_text_file("debug.html", body_data);
-          if (res > 0) {
-            is_ok = true;
-          }
-          is_html = true;
+      } else if (path != NULL && strcmp(path, "/status") == 0) {
+        DEBUG_LOG("/status");
+        // 代理的统计信息
+        string json;
+        is_ok = deal_status_handler(&json);
+        const char * data = json.c_str();
+        buffer_add(body_data, data, strlen(data));
+      } else if (path != NULL && strcmp(path, "/statistic") == 0) {
+        DEBUG_LOG("/statistic");
+        string json = deal_statistic_handler();
+        const char * data = json.c_str();
+        buffer_add(body_data, data, strlen(data));
+        is_ok = true;
+      } else if (path == NULL || strcmp(path, "/") == 0
+            || strncmp(path, "/web/", 5) == 0) {
+        char filename[256];
+        if (path == NULL || strcmp(path, "/") == 0) {
+          strcpy(filename, "info.html");
         } else {
-          WARN_LOG("未知的路径");
-          // 不支持的请求
-          const char * info = "ERROR: HTTP_NOTIMPLEMENT";
-          set_http_response(buf, HTTP_NOTIMPLEMENT, CODE_STR(HTTP_NOTIMPLEMENT),
-                *keep_alive, info, strlen(info));
-          goto BUF_OUT;
+          strcpy(filename, path + 5);
         }
+        DEBUG_LOG("/web/%s", filename);
+        int res = read_small_text_file(filename, body_data);
+        if (res > 0) {
+          is_ok = true;
+        }
+        is_html = true;
+      } else {
+        WARN_LOG("未知的路径");
+        // 不支持的请求
+        const char * info = "ERROR: HTTP_NOTIMPLEMENT";
+        set_http_response(buf, HTTP_NOTIMPLEMENT, CODE_STR(HTTP_NOTIMPLEMENT),
+              *keep_alive, info, strlen(info));
+        goto BUF_OUT;
       }
+      
       if (is_ok) {
         INFO_LOG("[%s] OK, [%s]", path, request->uri);
         set_http_response_buf(buf, HTTP_OK, CODE_STR(HTTP_OK),

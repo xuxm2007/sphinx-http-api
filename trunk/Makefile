@@ -1,6 +1,6 @@
 #Makefile for sphinx_http_api
 CC  := gcc
-XX := g++
+CXX := g++
 
 #C_FLAGS += -Wall -O2
 C_FLAGS += -g -O0 -Wall
@@ -11,6 +11,8 @@ LIB_FLAGS := -lpthread
 LIB :=
 #INC = -I""
 INC :=
+#COVERAGE := --coverage
+COVERAGE :=
 
 SUBDIR := liblog libsphinxclient libthreadpool libjson src
 SUBDIR2:= liblog libthreadpool src
@@ -36,7 +38,7 @@ INFO:
 
 $(TARGET):$(OBJ)
 	ctags -R
-	$(CXX) --coverage -o $@ $^ $(C_FLAGS) $(LIB_FLAGS) $(LIB) --static
+	$(CXX) $(COVERAGE) -o $@ $^ $(C_FLAGS) $(LIB_FLAGS) $(LIB) --static
 
 .c.o:
 	@echo $(@D)/$(<F) " -> " $(@D)/$(@F)
@@ -48,7 +50,7 @@ $(TARGET):$(OBJ)
 
 .cc.o:
 	@echo $(@D)/$(<F) " -> " $(@D)/$(@F)
-	$(CXX) -c --coverage $(@D)/$(<F) -o $(@D)/$(@F) $(CC_FLAGS) $(LIB_FLAGS) $(INC)
+	$(CXX) -c $(COVERAGE) $(@D)/$(<F) -o $(@D)/$(@F) $(CC_FLAGS) $(LIB_FLAGS) $(INC)
 
 format:
 	@echo "format source code style"

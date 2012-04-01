@@ -923,29 +923,30 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
         const char * data = json.c_str();
         buffer_add(body_data, data, strlen(data));
         is_ok = true;
-      } else if (path == NULL || strcmp(path, "/") == 0
-            || strncmp(path, "/web/", 5) == 0) {
+      } else {
         char filename[256];
         if (path == NULL || strcmp(path, "/") == 0) {
           strcpy(filename, "info.html");
-        } else {
+        } else if (strncmp(path, "/web/", 5) == 0) {
           strcpy(filename, path + 5);
+        } else {
+          strcpy(filename, path);
         }
         DEBUG_LOG("/web/%s", filename);
         int res = read_small_text_file(filename, body_data);
         if (res > 0) {
           is_ok = true;
+          is_html = true;
+        } else {
+          WARN_LOG("未知的路径[%s]", path);
+          // 不支持的请求
+          const char * info = "ERROR: HTTP_NOTFOUND";
+          set_http_response(buf, HTTP_NOTFOUND, CODE_STR(HTTP_NOTFOUND),
+                *keep_alive, info, strlen(info));
+          goto BUF_OUT;
         }
-        is_html = true;
-      } else {
-        WARN_LOG("未知的路径");
-        // 不支持的请求
-        const char * info = "ERROR: HTTP_NOTIMPLEMENT";
-        set_http_response(buf, HTTP_NOTIMPLEMENT, CODE_STR(HTTP_NOTIMPLEMENT),
-              *keep_alive, info, strlen(info));
-        goto BUF_OUT;
       }
-      
+
       if (is_ok) {
         INFO_LOG("[%s] OK, [%s]", path, request->uri);
         set_http_response_buf(buf, HTTP_OK, CODE_STR(HTTP_OK),

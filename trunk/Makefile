@@ -2,9 +2,11 @@
 CC  := gcc
 CXX := g++
 
-#C_FLAGS += -Wall -O2
-C_FLAGS += -g -O0 -Wall
-CC_FLAGS += -g -O0 -Wall -Wno-write-strings -Wextra -Winline -Wunused
+#C_FLAGS += -g -O0 -Wall
+C_FLAGS  += -O2 -Wall
+#CC_FLAGS += -g -O0 -Wall 
+CC_FLAGS += -Wall -O2
+CC_FLAGS += -Wno-write-strings -Wextra -Wunused
 CC_FLAGS += -Wfloat-equal -Wshadow -Werror -Wmissing-include-dirs -Wformat=2
 LIB_FLAGS := -lpthread
 #LIB = -L""

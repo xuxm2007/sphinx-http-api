@@ -1,0 +1,145 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>info</title>
+</head>
+
+<body>
+<h1>Info</h1>
+<pre></pre>
+<hr/>
+<ul>
+    <li><a href="/web/debug.html">debug</a></li>
+    <li><a href="/status">status</a></li>
+    <li><a href="/statistic">statistic</a></li>
+</ul>
+<hr/>
+<h1>Useage</h1>
+<pre>
+* GET方式请求,所有查询都基于此,自定义的请求格式
+
+* 请求格式
+  http://192.168.22.32:2046/search?q=mm&filter=m:1&filter=m2:[1 TO 2]&filter=m3:[1.1 TO 2.2]&groupby=m4&orderby=m5 desc&select=f1,f2,(a+b)
+  
+* 返回结果json
+  {
+     "matchNumb" : 20,
+     "matches" : [
+  	  {
+  		 "date_added" : 1323191082,
+  		 "group_id" : 775,
+  		 "id" : 21
+  	  },
+  	  ...
+  	  ,
+  	  {
+  		 "date_added" : 1323342774,
+  		 "group_id" : 713,
+  		 "id" : 44717
+  	  }
+     ],
+     "status" : 0,
+     "status_info" : "0=SEARCHD_OK, 1=SEARCHD_ERROR, 2=SEARCHD_RETRY, 3=SEARCHD_WARNING",
+     "time" : 0,
+     "total" : 20,
+     "wordNumb" : 1,
+     "words" : [
+  	  {
+  		 "docs" : 537,
+  		 "hits" : 537,
+  		 "word" : "少男"
+  	  }
+     ]
+  }
+ 	
+----------------------------------------------------------------------------------------------------
+
+http://host:port/path 不同的路径实现不同的功能
+
+* /search 索引检索,仅支持GET方式请求,注意调用需要转化请求url中的特殊字符串urlencode
+	示例：/search?q=a
+	
+  ** index 指定索引,例如index=test1
+	
+  ** q 查询词
+
+  ** filter 指定属性过滤器，如果指定的属性是float值，给定的值应该至少有一个带小数点和后缀数字。不支持字符串属性。
+     filter=attr:a,b,c,d 包含
+     filter=!attr:a,b,c,d 不包含
+     filter=attr:[a TO b] 包含边界值
+     filter=attr:(a TO b) 不包含边界值
+     filter=!attr:[a TO b] 不包含，边界值在集合范围内
+     filter=!attr:(a TO b) 不包含，边界值不在集合范围内
+     Filter=id:[id1 TO id2] 这个是为idrange特别的设定，只能是id，仅可以指定封闭集合，并且不能取反。
+
+  ** start 指定返回结果范围
+
+  ** rows
+	
+  ** fieldweights 指定字段权重 fieldweights=fieldName1:1,fieldName2:5 中间用逗号或者空格分隔，如果有重复，以最后一个为准
+	
+  ** maxquerytime 指定最大查询时间（非功能调用），maxquerytime=1000  默认1秒
+
+  ** groupby指定聚合统计（原型版暂不支持）
+	 groupby= SPH_GROUPBY_ATTR:attrName:@group desc
+	 *** SPH_GROUPBY_ATTR排序函数，可选值有:
+         . SPH_GROUPBY_DAY
+         . SPH_GROUPBY_WEEK
+         . SPH_GROUPBY_MONTH
+         . SPH_GROUPBY_YEAR
+         . SPH_GROUPBY_ATTR
+	 *** AttrName，指定按某个属性排序
+	 *** @group desc，分组值的排序方式，可选，如不选，最后的：可以不要。实际可用的值有（@group asc，@count asc）具体取值和含义参考sphinx的使用手册
+	   
+  ** groupdistinct指定聚合统计的二次分组计数 groupdistinct=attrName 
+	
+  ** matchmode指定匹配方式 matchmode= SPH_MATCH_ALL
+	 可选值有:
+     . SPH_MATCH_ALL
+     . SPH_MATCH_ANY
+     . SPH_MATCH_PHRASE
+     . SPH_MATCH_BOOLEAN
+     . SPH_MATCH_EXTENDED
+     . SPH_MATCH_FULLSCAN
+     . SPH_MATCH_EXTENDED2
+	   
+  ** rankingmode指定评分方式 rankingmode=SPH_RANK_PROXIMITY_BM25 仅对指定匹配模式为SPH_MATCH_EXTENDED2时有效
+	 可选值有:
+     . SPH_RANK_PROXIMITY_BM25
+     . SPH_RANK_BM25
+     . SPH_RANK_NONE
+     . SPH_RANK_WORDCOUNT
+     . SPH_RANK_PROXIMITY
+     . SPH_RANK_FIELDMASK
+	   
+  ** sortmode指定排序方式
+	 示例：
+     . sortmode= SPH_SORT_RELEVANCE
+     . sortmode= SPH_SORT_ATTR_DESC:attrName
+     . sortmode= SPH_SORT_EXTENDED:attrName asc,attrName2 desc
+     . sortmode= SPH_SORT_EXPR:(attrName+attrName2)/2 desc
+     可选的值有:
+     . SPH_SORT_RELEVANCE
+     . SPH_SORT_ATTR_DESC
+     . SPH_SORT_ATTR_ASC
+     . SPH_SORT_TIME_SEGMENTS
+     . SPH_SORT_EXTENDED
+     . SPH_SORT_EXPR
+	   
+  ** select指定返回的属性列表和表达式列表（原型版暂不支持）select=*,@weight+(user_karma+ln(pageviews))*0.1 AS myweight
+
+* /status sphinx的状态信息
+  
+* /statistic proxy的统计信息
+
+* /debug 简单调试
+
+* /info 简介
+----------------------------------------------------------------------------------------------------
+
+</pre>
+
+</body>
+
+</html>

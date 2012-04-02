@@ -1,0 +1,690 @@
+#include <deque>
+#include <map>
+#include <vector>
+#include <pthread.h>
+#include <semaphore.h>
+#include <time.h>
+#include <sys/time.h>
+#include <sys/shm.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <stdio.h>
+
+#include <string>
+#include <cstdio>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <cstdlib>
+#include <cctype>
+#include <sstream>
+#include <utility>
+#include <stdexcept>
+
+#include <sys/socket.h> 
+#include <sys/epoll.h> 
+#include <netinet/in.h> 
+#include <arpa/inet.h> 
+#include <iostream>
+#include <signal.h>
+
+using namespace std;
+
+#pragma pack(1)
+
+
+struct pipemsg {
+  int op;
+  int fd;
+  unsigned int ip;
+  unsigned short port;
+};
+
+
+struct ipport {
+  unsigned int ip;
+  unsigned short port;
+  bool operator < (const ipport rhs) const {return (ip < rhs.ip || (ip == rhs.ip && port < rhs.port));}
+  bool operator == (const ipport rhs) const {return (ip == rhs.ip && port == rhs.port);}
+};
+
+
+struct peerinfo {
+  int fd;					
+  unsigned int contime;	
+  unsigned int rcvtime;	
+  unsigned int rcvbyte;	
+  unsigned int sndtime;	
+  unsigned int sndbyte;	
+};
+
+
+struct conninfo {
+  int rfd;									
+  int wfd;									
+  map<struct ipport, struct peerinfo> peer;	
+};
+
+#pragma pack()
+
+
+bool g_bRun;
+
+
+struct conninfo g_ConnInfo;
+
+void setnonblocking(int sock) 
+{     
+  int opts;     
+  opts = fcntl(sock,F_GETFL);     
+  if (opts < 0)     
+  {         
+    perror("fcntl(sock,GETFL)");         
+    exit(1);     
+  }     
+  opts = opts|O_NONBLOCK;     
+  if (fcntl(sock, F_SETFL, opts) < 0)     
+  {         
+    perror("fcntl(sock,SETFL,opts)");         
+    exit(1);     
+  }  
+}
+
+void setreuseaddr(int sock)
+{
+  int opt;
+  opt = 1;    
+  if (setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(&opt)) < 0)     
+  {         
+    perror("setsockopt");         
+    exit(1);     
+  }  
+}
+
+static void sig_pro(int signum)
+{
+  cout << "sig_pro, recv signal:" << signum << endl;
+
+  if (signum == SIGQUIT)
+  {
+    g_bRun = false;
+  }
+}
+
+
+void * AcceptThread(void *arg)
+{
+  cout << "AcceptThread, enter" << endl;
+
+  int ret;		
+  int epfd;		
+  int listenfd;   
+  int connfd;		
+  int i;			
+  int nfds;		
+
+  struct epoll_event ev;     				
+  const int MAXEVENTS = 1024;				
+  struct epoll_event events[MAXEVENTS];	
+  socklen_t clilen;     					
+  struct sockaddr_in cliaddr;     
+  struct sockaddr_in svraddr;
+
+  unsigned short uListenPort = 5000;
+  int iBacklogSize = 5;
+  int iBackStoreSize = 1024;
+
+  struct pipemsg msg;						
+
+
+  epfd = epoll_create(iBackStoreSize);
+  if (epfd < 0)
+  {
+    cout << "AcceptThread, epoll_create fail:" << epfd << ",errno:" << errno << endl;
+
+    return NULL;
+  }
+
+
+  listenfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (listenfd < 0)
+  {
+    cout << "AcceptThread, socket fail:" << epfd << ",errno:" << errno << endl;
+
+    close(epfd);
+
+    return NULL;
+  }
+
+
+  setnonblocking(listenfd);
+
+  setreuseaddr(listenfd);
+
+
+  ev.data.fd = listenfd;     
+
+  ev.events = EPOLLIN|EPOLLET;        
+
+  ret = epoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &ev);
+  if (ret != 0)
+  {
+    cout << "AcceptThread, epoll_ctl fail:" << ret << ",errno:" << errno << endl;
+
+    close(listenfd);
+    close(epfd);
+
+    return NULL;
+  }   
+
+  bzero(&svraddr, sizeof(svraddr));     
+  svraddr.sin_family = AF_INET;     
+  svraddr.sin_addr.s_addr = htonl(INADDR_ANY);   
+  svraddr.sin_port=htons(uListenPort);     
+  bind(listenfd,(sockaddr *)&svraddr, sizeof(svraddr));
+
+  ret = listen(listenfd, iBacklogSize);
+  if (ret != 0)
+  {
+    cout << "AcceptThread, listen fail:" << ret << ",errno:" << errno << endl;
+
+    close(listenfd);
+    close(epfd);
+
+    return NULL;
+  }   
+
+  while (g_bRun)
+  {
+
+    nfds = epoll_wait(epfd, events, MAXEVENTS, 500);
+
+
+    for (i = 0; i < nfds && g_bRun; ++i)         
+    {
+      if (events[i].data.fd == listenfd)		
+      {
+        cout << "AcceptThread, events:" << events[i].events << ",errno:" << errno << endl;
+
+        if (events[i].events&EPOLLIN)	
+        {
+          do
+          {
+            clilen = sizeof(struct sockaddr);               
+            connfd = accept(listenfd,(sockaddr *)&cliaddr, &clilen);                
+            if (connfd > 0)
+            {
+              cout << "AcceptThread, accept:" << connfd << ",errno:" << errno << ",connect:" << inet_ntoa(cliaddr.sin_addr) << ":" << ntohs(cliaddr.sin_port) << endl;
+
+
+              msg.op = 1;
+              msg.fd = connfd;
+              msg.ip = cliaddr.sin_addr.s_addr;
+              msg.port = cliaddr.sin_port;
+              ret = write(g_ConnInfo.wfd, &msg, 14);
+              if (ret !=  14)
+              {
+                cout << "AcceptThread, write fail:" << ret << ",errno:" << errno << endl;
+
+                close(connfd);
+              }
+            }
+            else
+            {
+              cout << "AcceptThread, accept:" << connfd << ",errno:" << errno << endl;
+
+              if (errno == EAGAIN)	
+              {
+                break;
+              }
+              else if (errno == EINTR)	
+              {
+                ;
+              }
+              else	
+              {
+
+
+                close(listenfd);                     
+                epoll_ctl(epfd, EPOLL_CTL_DEL, listenfd, &ev);
+
+
+                listenfd = socket(AF_INET, SOCK_STREAM, 0);
+                if (listenfd < 0)
+                {
+                  cout << "AcceptThread, socket fail:" << epfd << ",errno:" << errno << endl;
+
+                  close(epfd);
+
+                  return NULL;
+                }
+
+
+                setnonblocking(listenfd);
+
+                setreuseaddr(listenfd);
+
+
+                ev.data.fd = listenfd;     
+
+                ev.events = EPOLLIN|EPOLLET;        
+
+                ret = epoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &ev);
+                if (ret != 0)
+                {
+                  cout << "AcceptThread, epoll_ctl fail:" << ret << ",errno:" << errno << endl;
+
+                  close(listenfd);
+                  close(epfd);
+
+                  return NULL;
+                }   
+
+                bzero(&svraddr, sizeof(svraddr));     
+                svraddr.sin_family = AF_INET;     
+                svraddr.sin_addr.s_addr = htonl(INADDR_ANY);   
+                svraddr.sin_port=htons(uListenPort);     
+                bind(listenfd,(sockaddr *)&svraddr, sizeof(svraddr));
+
+                ret = listen(listenfd, iBacklogSize);
+                if (ret != 0)
+                {
+                  cout << "AcceptThread, listen fail:" << ret << ",errno:" << errno << endl;
+
+                  close(listenfd);
+                  close(epfd);
+
+                  return NULL;
+                }
+              }
+            }
+          } while (g_bRun);
+        }
+        else if (events[i].events&EPOLLERR || events[i].events&EPOLLHUP)	
+        {
+
+          close(listenfd);                     
+          epoll_ctl(epfd, EPOLL_CTL_DEL, listenfd, &ev);
+
+
+          listenfd = socket(AF_INET, SOCK_STREAM, 0);
+          if (listenfd < 0)
+          {
+            cout << "AcceptThread, socket fail:" << epfd << ",errno:" << errno << endl;
+
+            close(epfd);
+
+            return NULL;
+          }
+
+
+          setnonblocking(listenfd);
+
+          setreuseaddr(listenfd);
+
+
+          ev.data.fd = listenfd;     
+
+          ev.events = EPOLLIN|EPOLLET;        
+
+          ret = epoll_ctl(epfd, EPOLL_CTL_ADD, listenfd, &ev);
+          if (ret != 0)
+          {
+            cout << "AcceptThread, epoll_ctl fail:" << ret << ",errno:" << errno << endl;
+
+            close(listenfd);
+            close(epfd);
+
+            return NULL;
+          }   
+
+          bzero(&svraddr, sizeof(svraddr));     
+          svraddr.sin_family = AF_INET;     
+          svraddr.sin_addr.s_addr = htonl(INADDR_ANY);   
+          svraddr.sin_port=htons(uListenPort);     
+          bind(listenfd,(sockaddr *)&svraddr, sizeof(svraddr));
+
+          ret = listen(listenfd, iBacklogSize);
+          if (ret != 0)
+          {
+            cout << "AcceptThread, listen fail:" << ret << ",errno:" << errno << endl;
+
+            close(listenfd);
+            close(epfd);
+
+            return NULL;
+          }
+        }
+      }
+    }
+  }
+
+
+  if (listenfd > 0)
+  {
+    close(listenfd);
+  }
+
+  if (epfd > 0)
+  {
+    close(epfd);
+  }
+
+  cout << "AcceptThread, exit" << endl;
+
+  return NULL;
+}
+
+
+void * ReadThread(void *arg)
+{
+  cout << "ReadThread, enter" << endl;
+
+  int ret;		
+  int epfd;		
+  int i;			
+  int nfds;		
+
+  struct epoll_event ev;     				
+  const int MAXEVENTS = 1024;				
+  struct epoll_event events[MAXEVENTS];	
+
+  int iBackStoreSize = 1024;
+
+  const int MAXBUFSIZE = 8192;					
+  char buf[MAXBUFSIZE];
+  int nread;										
+  struct ipport tIpPort;							
+  struct peerinfo tPeerInfo;						
+  map<int, struct ipport> mIpPort;				
+  map<int, struct ipport>::iterator itIpPort;					
+  map<struct ipport, struct peerinfo>::iterator itPeerInfo;	
+
+  struct pipemsg msg;						
+
+
+  epfd = epoll_create(iBackStoreSize);
+  if (epfd < 0)
+  {
+    cout << "ReadThread, epoll_create fail:" << epfd << ",errno:" << errno << endl;
+
+    return NULL;
+  }
+
+  while (g_bRun)
+  {
+
+    do
+    {
+      ret = read(g_ConnInfo.rfd, &msg, 14);
+      if (ret > 0)
+      {
+
+        if (ret == 14 && msg.fd > 0)
+        {
+          if (msg.op == 1)	
+          {
+            cout << "ReadThread, recv connect:" << msg.fd << ",errno:" << errno << endl;
+
+
+            setnonblocking(msg.fd);  
+
+            ev.data.fd = msg.fd;                
+
+            ev.events = EPOLLIN|EPOLLET;               
+
+            ret = epoll_ctl(epfd, EPOLL_CTL_ADD, msg.fd, &ev);
+            if (ret != 0)
+            {
+              cout << "ReadThread, epoll_ctl fail:" << ret << ",errno:" << errno << endl;
+
+              close(msg.fd);
+            }
+            else
+            {
+              mIpPort[msg.fd] = tIpPort;
+
+              tPeerInfo.fd = msg.fd;
+              tPeerInfo.contime = time(NULL);
+              tPeerInfo.rcvtime = 0;
+              tPeerInfo.rcvbyte = 0;
+              tPeerInfo.sndtime = 0;
+              tPeerInfo.sndbyte = 0;
+              g_ConnInfo.peer[tIpPort] = tPeerInfo;
+            }
+          }
+          else if (msg.op == 2)	
+          {
+            cout << "ReadThread, recv close:" << msg.fd << ",errno:" << errno << endl;
+
+            close(msg.fd);
+            epoll_ctl(epfd, EPOLL_CTL_DEL, msg.fd, &ev);
+
+            itIpPort = mIpPort.find(msg.fd);
+            if (itIpPort != mIpPort.end())
+            {
+              mIpPort.erase(itIpPort);
+
+              itPeerInfo = g_ConnInfo.peer.find(itIpPort->second);
+              if (itPeerInfo != g_ConnInfo.peer.end())
+              {
+                g_ConnInfo.peer.erase(itPeerInfo);
+              }
+            }
+          }
+        }
+      }
+      else
+      {
+        break;
+      }
+    } while(g_bRun);
+
+
+    nfds = epoll_wait(epfd, events, MAXEVENTS, 500);
+
+
+    for (i = 0; i < nfds && g_bRun; ++i)         
+    {
+      cout << "ReadThread, events:" << events[i].events << ",errno:" << errno << endl;
+
+      if (events[i].events&EPOLLIN)   
+      {		
+        do
+        {
+          bzero(buf, MAXBUFSIZE);
+          nread = read(events[i].data.fd, buf, MAXBUFSIZE);
+          if (nread > 0)	
+          {
+            cout << "ReadThread, read:" << nread << ",errno:" << errno << endl;
+
+            itIpPort = mIpPort.find(events[i].data.fd);
+            if (itIpPort != mIpPort.end())
+            {
+              itPeerInfo = g_ConnInfo.peer.find(itIpPort->second);
+              if (itPeerInfo != g_ConnInfo.peer.end())
+              {
+                itPeerInfo->second.rcvtime = time(NULL);
+                itPeerInfo->second.rcvbyte += nread;
+              }
+            }
+          }
+          else if (nread < 0) 
+          {
+            if (errno == EAGAIN)	
+            {
+              cout << "ReadThread, read:" << nread << ",errno:" << errno << ",no data" << endl;
+
+              break;
+            }
+            else if(errno == EINTR)		
+            {
+              cout << "ReadThread, read:" << nread << ",errno:" << errno << ",interrupt" << endl;
+            }
+            else	
+            {
+              cout << "ReadThread, read:" << nread << ",errno:" << errno << ",peer error" << endl;
+
+              close(events[i].data.fd);                     
+              epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &ev);				
+              itIpPort = mIpPort.find(events[i].data.fd);
+              if (itIpPort != mIpPort.end())
+              {
+                mIpPort.erase(itIpPort);
+
+                itPeerInfo = g_ConnInfo.peer.find(itIpPort->second);
+                if (itPeerInfo != g_ConnInfo.peer.end())
+                {
+                  g_ConnInfo.peer.erase(itPeerInfo);
+                }
+              }
+
+              break;
+            }
+          }
+          else if (nread == 0) 
+          {
+            cout << "ReadThread, read:" << nread << ",errno:" << errno << ",peer close" << endl;
+
+            close(events[i].data.fd);                     
+            epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &ev);
+            itIpPort = mIpPort.find(events[i].data.fd);
+            if (itIpPort != mIpPort.end())
+            {
+              mIpPort.erase(itIpPort);
+
+              itPeerInfo = g_ConnInfo.peer.find(itIpPort->second);
+              if (itPeerInfo != g_ConnInfo.peer.end())
+              {
+                g_ConnInfo.peer.erase(itPeerInfo);
+              }
+            }
+
+            break;      
+          }
+        } while (g_bRun);
+      }
+      else if (events[i].events&EPOLLERR || events[i].events&EPOLLHUP)	
+      {
+        cout << "ReadThread, read:" << nread << ",errno:" << errno << ",err or hup" << endl;
+
+        close(events[i].data.fd);                     
+        epoll_ctl(epfd, EPOLL_CTL_DEL, events[i].data.fd, &ev);
+        itIpPort = mIpPort.find(events[i].data.fd);
+        if (itIpPort != mIpPort.end())
+        {
+          mIpPort.erase(itIpPort);
+
+          itPeerInfo = g_ConnInfo.peer.find(itIpPort->second);
+          if (itPeerInfo != g_ConnInfo.peer.end())
+          {
+            g_ConnInfo.peer.erase(itPeerInfo);
+          }
+        }
+      }
+    }
+  }
+
+
+  for (itIpPort = mIpPort.begin(); itIpPort != mIpPort.end(); itIpPort++)
+  {
+    if (itIpPort->first > 0)
+    {
+      close(itIpPort->first);
+    }
+  }
+
+  if (epfd > 0)
+  {
+    close(epfd);
+  }
+
+  cout << "ReadThread, exit" << endl;
+
+  return NULL;
+}
+
+int main(int argc, char* argv[])
+{
+  int ret;
+  int fd[2];					
+  pthread_t iAcceptThreadId;	
+  pthread_t iReadThreadId;	
+
+  struct sigaction sa;
+  sa.sa_flags = SA_RESTART;
+  sa.sa_handler = sig_pro;
+  sigaction(SIGINT, &sa, NULL);
+  sigaction(SIGUSR1, &sa, NULL);
+  sigaction(SIGUSR2, &sa, NULL);
+  sigaction(SIGQUIT, &sa, NULL);
+
+
+  g_bRun = true;
+
+
+  ret = pipe(fd);
+  if (ret < 0)
+  {
+    cout << "main, pipe fail:" << ret << ",errno:" << errno << endl;
+
+    g_bRun = false;
+
+    return 0;
+  }
+  g_ConnInfo.rfd = fd[0];
+  g_ConnInfo.wfd = fd[1];
+
+
+  setnonblocking(g_ConnInfo.rfd);
+
+
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM); 				
+
+
+
+  ret = pthread_create(&iAcceptThreadId, &attr, AcceptThread, NULL);
+  if( ret != 0)
+  {
+    cout << "main, pthread_create AcceptThread fail:" << ret << ",errno:" << errno << endl;
+
+    g_bRun = false;
+    close(g_ConnInfo.rfd);
+    close(g_ConnInfo.wfd);
+
+    return 0;
+  }
+
+
+  ret = pthread_create(&iReadThreadId, &attr, ReadThread, NULL);
+  if( ret != 0)
+  {
+    cout << "main, pthread_create ReadThread fail:" << ret << ",errno:" << errno << endl;
+
+    g_bRun = false;
+    pthread_join(iAcceptThreadId, NULL);
+    close(g_ConnInfo.rfd);
+    close(g_ConnInfo.wfd);
+
+    return 0;
+  }
+
+
+  while (g_bRun)
+  {
+    sleep(1);
+  }
+
+
+  pthread_join(iAcceptThreadId, NULL);
+  pthread_join(iReadThreadId, NULL);
+  close(g_ConnInfo.rfd);
+  close(g_ConnInfo.wfd);
+
+  return 0;
+}

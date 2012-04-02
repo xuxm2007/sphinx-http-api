@@ -151,6 +151,9 @@ int parserQuery(keyvalq & http_query, QueryData & qd) {
     DEBUG_LOG("kv->name:%s, kv->value:%s.", kv->name, kv->value);
 #define NO_SUPPORT_QUERY_PARAM \
         WARN_LOG("不支持的输入值, key:%s, value:%s", kv->name, kv->value);
+    if (kv->value == NULL || kv->value[0] == 0) {
+      continue;
+    }
     switch (kv->name[0]) {
       case 'c':
         if (strcmp("connecttimeout", kv->name) == 0) {
@@ -484,8 +487,9 @@ void search(const SphinxQueryData & sqd, SearchResult * sr) {
 string convert_to_json_string(const SearchResult & sr) {
   Json::Value root;
   // 拼输出
-  root["status_info"]="0 = SEARCHD_OK, 1 = SEARCHD_ERROR, 2 = SEARCHD_RETRY, "
-    "3 = SEARCHD_WARNING";
+  root["status_code"] = "[0,1,2,3]";
+  root["status_info"] = "[SEARCHD_OK,SEARCHD_ERROR,SEARCHD_RETRY"
+    ",SEARCHD_WARNING]";
   root["status"] = sr.getStatus();
   if (sr.getStatus() != SEARCHD_OK) {
     WARN_LOG("search result status:%d", sr.getStatus());
@@ -925,12 +929,12 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
         is_ok = true;
       } else {
         char filename[256];
-        if (path == NULL || strcmp(path, "/") == 0) {
-          strcpy(filename, "info.html");
+        if (path == NULL || path[0] == 0 || strcmp(path, "/") == 0) {
+          snprintf(filename, sizeof(filename), "info.html");
         } else if (strncmp(path, "/web/", 5) == 0) {
-          strcpy(filename, path + 5);
+          snprintf(filename, sizeof(filename), "%s", (path + 5));
         } else {
-          strcpy(filename, path);
+          snprintf(filename, sizeof(filename), "%s", path);
         }
         DEBUG_LOG("/web/%s", filename);
         int res = read_small_text_file(filename, body_data);

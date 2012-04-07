@@ -504,6 +504,7 @@ string convert_to_json_string(const SearchResult & sr) {
       root["warning"] = sr.getWarning();
     }
     root["total"] = sr.getTotal();
+    root["total_found"] = sr.getTotalFound();
     root["time"] = sr.getTime();
     int matchNumb = sr.getMatchNumb();
     root["matchNumb"] = matchNumb;

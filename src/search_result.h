@@ -55,6 +55,10 @@ class SearchResult {
     unsigned int getTotal() const {
       return (unsigned int) res_->total;
     }
+    
+    unsigned int getTotalFound() const {
+      return (unsigned int) res_->total_found;
+    }
 
     unsigned int getTime() const {
       return (unsigned int) res_->time_msec;

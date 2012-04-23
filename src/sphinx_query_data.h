@@ -73,7 +73,7 @@ class SphinxQueryData {
     };
 
     // FIXME: 增强输入参数的格式检查
-    explicit SphinxQueryData(QueryData qd) {
+    explicit SphinxQueryData(QueryData & qd) {
 #define THROW_F_E(key, str) \
       do { throw string("格式错误:[") + (#key) + "=" + (str) + "]"; } while (0)
 #define STR_TO_NUMB(name) \

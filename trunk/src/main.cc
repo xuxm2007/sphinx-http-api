@@ -4,14 +4,7 @@
  * hontlong@gmail.com 2012 - 02
  * Copyright [2012] zhaigy
  * *****************************/
-// 搜索功能补全
 // 错误异常返回值检查
-// 配置文件，记录日志
-// 统计、调试功能
-// 连接池
-// 增加信息、统计、调试页面
-// 调试
-// 测试
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -82,7 +75,8 @@ class Statistic {
     start_time(time(NULL)) {
     }
     // 查询总次数
-    // volatile int64_t query_count;  // why can't use volatile?
+    // why can't use volatile?
+    // volatile int64_t query_count;
     int64_t query_count;
     // 查询出错次数
     // volatile int64_t query_error_count;
@@ -140,6 +134,12 @@ CLog * gp_log = NULL;
 // #define TRACE_F DEBUG_LOG("function:%s, line:%d", __FUNCTION__, __LINE__)
 #define TRACE_F
 /**************************************************/
+
+static void add_status_info(Json::Value &root) {
+  root["status_code"] = "[0,1,2,3]";
+  root["status_info"] = "[SEARCHD_OK,SEARCHD_ERROR,SEARCHD_RETRY"
+    ",SEARCHD_WARNING]";
+}
 
 /**
  * 实现从输入到查询数据的初步转换
@@ -487,9 +487,7 @@ void search(const SphinxQueryData & sqd, SearchResult * sr) {
 string convert_to_json_string(const SearchResult & sr) {
   Json::Value root;
   // 拼输出
-  root["status_code"] = "[0,1,2,3]";
-  root["status_info"] = "[SEARCHD_OK,SEARCHD_ERROR,SEARCHD_RETRY"
-    ",SEARCHD_WARNING]";
+  add_status_info(root);
   root["status"] = sr.getStatus();
   if (sr.getStatus() != SEARCHD_OK) {
     WARN_LOG("search result status:%d", sr.getStatus());
@@ -554,8 +552,7 @@ string convert_to_json_string(const SearchResult & sr) {
  */
 string make_inner_error_json_string(string e) {
   Json::Value root;
-  root["status_info"] = "0 = SEARCHD_OK, 1 = SEARCHD_ERROR; 2 = SEARCHD_RETRY;"
-    " 3 = SEARCHD_WARNING";
+  add_status_info(root);
   root["status"] = SEARCHD_ERROR;
   root["error"] = e;
   Json::StyledWriter json_writer;
@@ -580,13 +577,13 @@ bool deal_search_handler(keyvalq & http_query, string & json) {
     json = convert_to_json_string(searchResult);
     return true;
   } catch(const char *e) {
-    ERROR_LOG("异常:%s", e);
+    // ERROR_LOG("异常:%s", e);
     json = make_inner_error_json_string(string("异常：") + e);
   } catch(const string & e) {
-    ERROR_LOG("异常:%s", e.c_str());
+    // ERROR_LOG("异常:%s", e.c_str());
     json = make_inner_error_json_string("异常：" + e);
   } catch(...) {
-    ERROR_LOG("未知的异常");
+    // ERROR_LOG("未知的异常");
     json = make_inner_error_json_string("未知的异常");
   }
   return false;
@@ -598,8 +595,7 @@ bool deal_search_handler(keyvalq & http_query, string & json) {
 bool deal_status_handler(string * pjson) {
   TRACE_F;
   Json::Value root;
-  root["status_info"] = "0 = SEARCHD_OK, 1 = SEARCHD_ERROR; 2 = SEARCHD_RETRY;"
-    " 3 = SEARCHD_WARNING";
+  add_status_info(root);
 
   string & json = *pjson;
   sphinx_client * const client = get_thread_sphinx_client();
@@ -959,8 +955,13 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
       } else {
         WARN_LOG("[%s] Fail, [%s]", path, request->uri);
         *keep_alive = false;
-        set_http_response_buf(buf, HTTP_BADREQUEST, CODE_STR(HTTP_BADREQUEST),
-              *keep_alive, body_data);
+        if (is_html) { 
+          set_http_response_buf(buf, HTTP_BADREQUEST, CODE_STR(HTTP_BADREQUEST),
+                *keep_alive, body_data, is_html);
+        } else {  // json
+          set_http_response_buf(buf, HTTP_OK, CODE_STR(HTTP_OK),
+                *keep_alive, body_data, is_html);
+        }
       }
     }
  BUF_OUT:

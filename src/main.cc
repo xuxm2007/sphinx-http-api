@@ -869,7 +869,7 @@ void http_handler(struct ClientInfo * socket_client, bool * keep_alive) {
       if (path != NULL && strcmp(path, "/search") == 0) {
         // 处理检索
         gp_statistic->query_count++;
-        char query_str[256];
+        char query_str[4096];
         // FIXME 这里可以和获取路径的函数合并优化
         {
           // 获取查询语句

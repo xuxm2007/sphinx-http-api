@@ -1,0 +1,110 @@
+<html>
+  
+  <head>
+    <meta http-equiv="Content-Language" content="zh-cn">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Debug</title>
+    <script src="./jquery-1.6.4.min.js"></script>
+    <script>!window.jQuery && document.write('<script src="./jquery-1.6.4.min.js"><\/script>');</script>
+
+  </head>
+
+  <body>
+    <div>说明：基本功能的测试</div>
+    <form>
+      <div style="position: absolute; width: 100px; height: 100px; z-index: 1; left: 11px; top: 51px" id="layer1">
+        <table border="1" width="600">
+          <tr>
+            <td width="84" height="29">索引</td>
+            <td height="29"><input type="text" name="index" size="35"
+              value="mysql">（名称）</td>
+          </tr>
+          <tr>
+            <td width="84">查询</td>
+            <td><input type="text" name="q" size="58" value="少男"></td>
+          </tr>
+          <tr>
+            <td width="84">过滤</td>
+            <td><input type="text" name="filter" size="35" value="">
+              <br/>（属性名:属性值[,属性值...]。可以多个过滤，使用;分割）</td>
+          </tr>
+          <tr>
+            <td width="84">返回数量</td>
+            <td>start:<input type="text" name="start" size="15"
+              value="0">&nbsp;rows:<input type="text" name="rows" size="15" value="20"></td>
+          </tr>
+          <tr>
+            <td width="84">匹配模式</td>
+            <td>
+              <select size="1" name="matchmode">
+                <option>SPH_MATCH_ALL</option>
+                <option>SPH_MATCH_ANY</option>
+                <option>SPH_MATCH_PHRASE</option>
+                <option>SPH_MATCH_BOOLEAN</option>
+                <option>SPH_MATCH_EXTENDED</option>
+                <option>SPH_MATCH_FULLSCAN</option>
+                <option selected>SPH_MATCH_EXTENDED2</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td width="84">评分模式</td>
+            <td>
+              <select size="1" name="rankingmode">
+                <option selected>SPH_RANK_PROXIMITY_BM25</option>
+                <option>SPH_RANK_BM25</option>
+                <option>SPH_RANK_NONE</option>
+                <option>SPH_RANK_WORDCOUNT</option>
+                <option>SPH_RANK_PROXIMITY</option>
+                <option>SPH_RANK_MATCHANY</option>
+                <option>SPH_RANK_FIELDMASK</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td width="84">排序模式</td>
+            <td>
+              <select size="1" name="sortmode">
+                <option selected value="SPH_SORT_RELEVANCE">SPH_SORT_RELEVANCE</option>
+                <option value="SPH_SORT_ATTR_DESC">SPH_SORT_ATTR_DESC</option>
+                <option value="SPH_SORT_ATTR_ASC">SPH_SORT_ATTR_ASC</option>
+                <option value="SPH_SORT_TIME_SEGMENTS">SPH_SORT_TIME_SEGMENTS</option>
+                <option value="SPH_SORT_EXTENDED">SPH_SORT_EXTENDED</option>
+                <option value="SPH_SORT_EXPR">SPH_SORT_EXPR</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td width="84">　</td>
+            <td><input id="submit" type="submit" value="提交" name="B1"></td>			
+          </tr>
+        </table>
+      </div>
+    </form>
+
+    <div style="position: absolute; width: 630px; height: 100px; z-index: 1; left: 616px; top: 50px" id="layer2">
+      <table border="1" width="100%">
+        <tr>
+          <td>
+            <p align="center"><span lang="zh-cn">查询结果</span></p>
+          </td>
+        </tr>
+        <tr>
+      <td><pre><div id="out"></div></pre></td>
+        </tr>
+      </table>
+    </div>
+
+    <script>
+      $(":submit").click(function(){	
+        var param=$.param($(":text,select"));
+        $("#out").load("/search",param);
+        return false;
+      });	
+
+      $("form").submit(function(){return false;});
+    </script>
+
+  </body>
+
+</html>
